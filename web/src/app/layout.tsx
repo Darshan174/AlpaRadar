@@ -11,7 +11,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Prevent flash: apply saved theme before paint */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             const t = localStorage.getItem('alpharadar-theme');
@@ -21,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex h-screen overflow-hidden bg-(--color-bg-primary) text-(--color-text-primary) antialiased">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
       </body>
     </html>
   );

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SentimentBadge } from "@/components/sentiment-badge";
+import Link from "next/link";
 import { getWatchlist, addToWatchlist, removeFromWatchlist } from "@/lib/api";
-import type { WatchlistItem, Sentiment } from "@/lib/types";
+import type { WatchlistItem } from "@/lib/types";
 
-const USER_ID = "default-user"; // Replace with auth later
+const USER_ID = "default-user";
 
 export default function WatchlistPage() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
@@ -60,7 +60,7 @@ export default function WatchlistPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Watchlist</h1>
         <p className="text-sm text-(--color-text-muted)">
-          Track tickers and get automatic alerts when signals fire
+          Track companies and get automatic alerts when alt-data signals fire
         </p>
       </div>
 
@@ -71,16 +71,16 @@ export default function WatchlistPage() {
           value={tickerInput}
           onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
           placeholder="Add ticker (e.g. NVDA)"
-          className="flex-1 rounded-lg border border-(--color-border) bg-(--color-bg-card) px-4 py-2.5 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) outline-none focus:border-(--color-accent)"
+          className="flex-1 rounded-xl border border-(--color-border) bg-(--color-bg-card) px-4 py-2.5 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) outline-none focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/20 card-shadow"
           maxLength={10}
           disabled={adding}
         />
         <button
           type="submit"
           disabled={adding || !tickerInput.trim()}
-          className="rounded-lg bg-(--color-accent) px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
+          className="rounded-xl bg-(--color-accent) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--color-accent-hover) disabled:opacity-40"
         >
-          {adding ? "Adding..." : "Add"}
+          {adding ? "..." : "Add"}
         </button>
       </form>
 
@@ -90,65 +90,68 @@ export default function WatchlistPage() {
         </div>
       )}
 
-      {/* Watchlist table */}
+      {/* Watchlist cards (mobile-friendly) */}
       {loading ? (
         <div className="flex h-40 items-center justify-center text-sm text-(--color-text-muted)">
-          Loading...
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-(--color-border) text-sm text-(--color-text-muted)">
-          <p>Your watchlist is empty</p>
-          <p className="text-xs">Add tickers above to start receiving signal alerts</p>
+        <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-(--color-border)">
+          <div className="text-sm text-(--color-text-muted)">Your watchlist is empty</div>
+          <p className="text-xs text-(--color-text-muted)">Add tickers to get alerted on hiring surges, exec moves, and more</p>
+          <Link href="/" className="text-xs text-(--color-accent) hover:underline">
+            Explore trending companies
+          </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-(--color-border)">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-(--color-border) bg-(--color-bg-secondary)">
-                <th className="px-4 py-3 text-xs font-medium text-(--color-text-muted)">Ticker</th>
-                <th className="px-4 py-3 text-xs font-medium text-(--color-text-muted)">Company</th>
-                <th className="px-4 py-3 text-xs font-medium text-(--color-text-muted)">Alerts</th>
-                <th className="px-4 py-3 text-xs font-medium text-(--color-text-muted)">Added</th>
-                <th className="px-4 py-3 text-xs font-medium text-(--color-text-muted)"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.ticker}
-                  className="border-b border-(--color-border) transition-colors hover:bg-(--color-bg-hover)"
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <div
+              key={item.ticker}
+              className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-4 transition-colors hover:border-(--color-accent)/30 card-shadow"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <Link
+                  href={`/company/${item.ticker}`}
+                  className="text-lg font-bold transition-colors hover:text-(--color-accent)"
                 >
-                  <td className="px-4 py-3 font-bold">{item.ticker}</td>
-                  <td className="px-4 py-3 text-(--color-text-secondary)">
-                    {item.company_name || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {item.alert_on.map((type) => (
-                        <span
-                          key={type}
-                          className="rounded bg-(--color-bg-secondary) px-1.5 py-0.5 text-[10px] text-(--color-text-muted)"
-                        >
-                          {type.replace(/_/g, " ")}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-(--color-text-muted)">
-                    {new Date(item.added_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleRemove(item.ticker)}
-                      className="text-xs text-(--color-bearish) hover:underline"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  {item.ticker}
+                </Link>
+                <button
+                  onClick={() => handleRemove(item.ticker)}
+                  className="rounded-lg px-2 py-1 text-[10px] text-(--color-text-muted) transition-colors hover:bg-(--color-bearish)/10 hover:text-(--color-bearish)"
+                >
+                  Remove
+                </button>
+              </div>
+
+              {item.company_name && (
+                <div className="mb-3 text-xs text-(--color-text-muted)">{item.company_name}</div>
+              )}
+
+              {/* Alert types */}
+              <div className="mb-3 flex flex-wrap gap-1">
+                {item.alert_on.map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full bg-(--color-accent)/10 px-2 py-0.5 text-[10px] font-medium text-(--color-accent)"
+                  >
+                    {type.replace(/_/g, " ")}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-(--color-text-muted)">
+                <span>Added {new Date(item.added_at).toLocaleDateString()}</span>
+                <Link
+                  href={`/company/${item.ticker}`}
+                  className="text-(--color-accent) hover:underline"
+                >
+                  View DNA
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
