@@ -8,6 +8,15 @@ export type SignalType =
 export type SignalStrength = "strong" | "moderate" | "weak";
 export type Sentiment = "bullish" | "bearish" | "neutral";
 
+export interface Evidence {
+  type: string;
+  title: string;
+  detail: string;
+  source: string;
+  url?: string;
+  timestamp: string;
+}
+
 export interface Signal {
   id: string;
   type: SignalType;
@@ -19,7 +28,52 @@ export interface Signal {
   detail: string;
   score: number;
   data: Record<string, unknown>;
+  evidence?: Evidence[];
   detected_at: string;
+}
+
+export interface BriefSections {
+  what_happened: string;
+  why_it_matters: string;
+  supporting_evidence: string | Evidence[];
+  risks: string;
+}
+
+export interface Brief {
+  signal_id: string;
+  ticker: string;
+  generated_at: string;
+  prompt_version: string;
+  sections: BriefSections;
+  evidence?: Evidence[];
+}
+
+export interface SignalDetail {
+  signal: Signal;
+  brief: Brief | null;
+  company: CompanyInfo | null;
+}
+
+export interface CompanyInfo {
+  ticker: string;
+  name: string;
+  sector: string;
+  industry: string;
+  market_cap: number;
+}
+
+export interface CompanyDetail {
+  company: CompanyInfo | null;
+  signals: Signal[];
+  briefs: Brief[];
+  signal_count: number;
+}
+
+export interface FeedResponse {
+  signals: Signal[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface Insight {

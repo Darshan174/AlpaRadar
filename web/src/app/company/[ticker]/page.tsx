@@ -10,15 +10,16 @@ import { HeadcountChart } from "@/components/headcount-chart";
 import { ExecRoster } from "@/components/exec-roster";
 import { TalentFlow } from "@/components/talent-flow";
 import { PreEarningsCard } from "@/components/pre-earnings-card";
-import { analyzeTicker } from "@/lib/api";
-import type { Insight, Sentiment } from "@/lib/types";
+import { EvidenceCard } from "@/components/evidence-card";
+import { getCompanyDetail } from "@/lib/api";
+import type { Signal, Sentiment, CompanyDetail, Evidence } from "@/lib/types";
 
 type Tab = "overview" | "executives" | "competitors" | "earnings";
 
 export default function CompanyDNAPage() {
   const params = useParams();
   const ticker = (params.ticker as string)?.toUpperCase() || "";
-  const [insight, setInsight] = useState<Insight | null>(null);
+  const [data, setData] = useState<CompanyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
@@ -27,8 +28,8 @@ export default function CompanyDNAPage() {
     if (!ticker) return;
     setLoading(true);
     setError(null);
-    analyzeTicker(ticker)
-      .then(setInsight)
+    getCompanyDetail(ticker)
+      .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [ticker]);
@@ -37,8 +38,8 @@ export default function CompanyDNAPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-(--color-text-muted)">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
-        <p className="text-sm">Analyzing {ticker}...</p>
-        <p className="text-xs">Fetching market data + Crustdata intelligence</p>
+        <p className="text-sm">Loading {ticker}...</p>
+        <p className="text-xs">Fetching signals and intelligence</p>
       </div>
     );
   }
@@ -47,7 +48,7 @@ export default function CompanyDNAPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
         <div className="rounded-lg border border-(--color-bearish)/30 bg-(--color-bearish)/10 p-6 text-center text-sm text-(--color-bearish)">
-          <p className="font-medium">Could not analyze {ticker}</p>
+          <p className="font-medium">Could not load {ticker}</p>
           <p className="mt-1 text-xs text-(--color-text-muted)">{error}</p>
         </div>
         <Link href="/" className="text-sm text-(--color-accent) hover:underline">Back to home</Link>
@@ -55,7 +56,17 @@ export default function CompanyDNAPage() {
     );
   }
 
-  if (!insight) return null;
+  if (!data || !data.company) return null;
+
+  const { company, signals, signal_count } = data;
+  const avgScore = signals.length > 0
+    ? signals.reduce((sum, s) => sum + s.score, 0) / signals.length
+    : 0;
+  const netSentiment = signals.reduce(
+    (acc, s) => (s.sentiment === "bullish" ? acc + 1 : s.sentiment === "bearish" ? acc - 1 : acc),
+    0,
+  );
+  const sentiment: Sentiment = netSentiment > 0 ? "bullish" : netSentiment < 0 ? "bearish" : "neutral";
 
   return (
     <div className="flex h-full flex-col">
@@ -64,19 +75,21 @@ export default function CompanyDNAPage() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="mr-auto">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{insight.ticker}</h1>
-              <SentimentBadge sentiment={insight.sentiment as Sentiment} />
+              <h1 className="text-2xl font-bold">{company.ticker}</h1>
+              <SentimentBadge sentiment={sentiment} />
             </div>
-            <p className="text-sm text-(--color-text-muted)">{insight.company_name}</p>
+            <p className="text-sm text-(--color-text-muted)">
+              {company.name} &middot; {company.sector} &middot; {company.industry}
+            </p>
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
-              <div className="text-[10px] text-(--color-text-muted) uppercase">Score</div>
-              <ScoreBadge score={insight.composite_score} size="lg" />
+              <div className="text-[10px] text-(--color-text-muted) uppercase">Avg Score</div>
+              <ScoreBadge score={avgScore} size="lg" />
             </div>
             <div className="text-center">
               <div className="text-[10px] text-(--color-text-muted) uppercase">Signals</div>
-              <div className="text-xl font-bold text-(--color-accent)">{insight.signal_count}</div>
+              <div className="text-xl font-bold text-(--color-accent)">{signal_count}</div>
             </div>
             <Link
               href={`/compare?a=${ticker}`}
@@ -107,10 +120,10 @@ export default function CompanyDNAPage() {
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {tab === "overview" && <OverviewTab insight={insight} />}
-        {tab === "executives" && <ExecutivesTab insight={insight} />}
-        {tab === "competitors" && <CompetitorsTab insight={insight} />}
-        {tab === "earnings" && <EarningsTab insight={insight} />}
+        {tab === "overview" && <OverviewTab signals={signals} ticker={ticker} />}
+        {tab === "executives" && <ExecutivesTab signals={signals} ticker={ticker} />}
+        {tab === "competitors" && <CompetitorsTab signals={signals} ticker={ticker} />}
+        {tab === "earnings" && <EarningsTab signals={signals} ticker={ticker} sentiment={sentiment} avgScore={avgScore} />}
       </div>
     </div>
   );
@@ -118,8 +131,7 @@ export default function CompanyDNAPage() {
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
-function OverviewTab({ insight }: { insight: Insight }) {
-  // Mock headcount data derived from signals
+function OverviewTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
   const hcData = [
     { label: "Q1 '25", value: 4200 },
     { label: "Q2 '25", value: 4450 },
@@ -128,24 +140,29 @@ function OverviewTab({ insight }: { insight: Insight }) {
     { label: "Q1 '26", value: 5600 },
   ];
 
+  // Collect all evidence from all signals for this company
+  const allEvidence: Evidence[] = signals.flatMap((s) => s.evidence || []);
+
   return (
     <div className="space-y-6">
-      {/* Two-column on desktop */}
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* Left: chart + analysis */}
+        {/* Left: chart + evidence */}
         <div className="space-y-6 lg:col-span-3">
-          {/* Headcount chart */}
           <section className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
             <h3 className="mb-4 text-sm font-semibold text-(--color-text-secondary)">Headcount Trend</h3>
             <HeadcountChart data={hcData} height={180} />
           </section>
 
-          {/* LLM Analysis */}
-          {insight.llm_analysis && (
-            <section className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
-              <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">AI Analysis</h3>
-              <div className="whitespace-pre-wrap text-sm leading-relaxed text-(--color-text-primary)">
-                {insight.llm_analysis}
+          {/* Evidence sources */}
+          {allEvidence.length > 0 && (
+            <section>
+              <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">
+                Source Evidence ({allEvidence.length})
+              </h3>
+              <div className="space-y-2">
+                {allEvidence.slice(0, 6).map((e, i) => (
+                  <EvidenceCard key={i} evidence={e} />
+                ))}
               </div>
             </section>
           )}
@@ -154,14 +171,18 @@ function OverviewTab({ insight }: { insight: Insight }) {
         {/* Right: signal feed */}
         <div className="space-y-3 lg:col-span-2">
           <h3 className="text-sm font-semibold text-(--color-text-secondary)">
-            Active Signals ({insight.signal_count})
+            Active Signals ({signals.length})
           </h3>
-          {insight.signals.length === 0 ? (
+          {signals.length === 0 ? (
             <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
-              No signals detected. Company may lack Crustdata coverage.
+              No signals detected for {ticker}
             </div>
           ) : (
-            insight.signals.map((s) => <SignalCard key={s.id} signal={s} />)
+            signals.map((s) => (
+              <Link key={s.id} href={`/signal/${s.id}`} className="block">
+                <SignalCard signal={s} />
+              </Link>
+            ))
           )}
         </div>
       </div>
@@ -171,13 +192,15 @@ function OverviewTab({ insight }: { insight: Insight }) {
 
 // ── Executives Tab ────────────────────────────────────────────────────────────
 
-function ExecutivesTab({ insight }: { insight: Insight }) {
+function ExecutivesTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
   const mockExecs = [
     { name: "Jensen Huang", title: "CEO", from_company: undefined, is_new: false },
     { name: "Colette Kress", title: "CFO", from_company: undefined, is_new: false },
     { name: "Devi Shankar", title: "VP of AI Platforms", from_company: "Google", is_new: true },
     { name: "Michael Chen", title: "CTO", from_company: "Meta", is_new: true },
   ];
+
+  const execSignals = signals.filter((s) => s.type === "executive_move");
 
   return (
     <div className="space-y-6">
@@ -189,15 +212,17 @@ function ExecutivesTab({ insight }: { insight: Insight }) {
 
         <section>
           <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Executive Signals</h3>
-          {insight.signals.filter((s) => s.type === "executive_move").length === 0 ? (
+          {execSignals.length === 0 ? (
             <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
               No executive movement signals detected
             </div>
           ) : (
             <div className="space-y-3">
-              {insight.signals
-                .filter((s) => s.type === "executive_move")
-                .map((s) => <SignalCard key={s.id} signal={s} />)}
+              {execSignals.map((s) => (
+                <Link key={s.id} href={`/signal/${s.id}`} className="block">
+                  <SignalCard signal={s} />
+                </Link>
+              ))}
             </div>
           )}
         </section>
@@ -208,14 +233,16 @@ function ExecutivesTab({ insight }: { insight: Insight }) {
 
 // ── Competitors Tab ───────────────────────────────────────────────────────────
 
-function CompetitorsTab({ insight }: { insight: Insight }) {
+function CompetitorsTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
   const mockFlows = [
-    { from: "AMD", to: insight.ticker, count: 23 },
-    { from: "Intel", to: insight.ticker, count: 18 },
-    { from: insight.ticker, to: "OpenAI", count: 8 },
-    { from: "Google", to: insight.ticker, count: 15 },
-    { from: insight.ticker, to: "Meta", count: 5 },
+    { from: "AMD", to: ticker, count: 23 },
+    { from: "Intel", to: ticker, count: 18 },
+    { from: ticker, to: "OpenAI", count: 8 },
+    { from: "Google", to: ticker, count: 15 },
+    { from: ticker, to: "Meta", count: 5 },
   ];
+
+  const compSignals = signals.filter((s) => s.type === "competitor_shift");
 
   return (
     <div className="space-y-6">
@@ -225,20 +252,22 @@ function CompetitorsTab({ insight }: { insight: Insight }) {
           <p className="mb-3 text-xs text-(--color-text-muted)">
             Where employees are moving to/from. Green = inbound (bullish), red = outbound.
           </p>
-          <TalentFlow flows={mockFlows} focusTicker={insight.ticker} />
+          <TalentFlow flows={mockFlows} focusTicker={ticker} />
         </section>
 
         <section>
           <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Competitor Signals</h3>
-          {insight.signals.filter((s) => s.type === "competitor_shift").length === 0 ? (
+          {compSignals.length === 0 ? (
             <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
               No competitor shift signals detected
             </div>
           ) : (
             <div className="space-y-3">
-              {insight.signals
-                .filter((s) => s.type === "competitor_shift")
-                .map((s) => <SignalCard key={s.id} signal={s} />)}
+              {compSignals.map((s) => (
+                <Link key={s.id} href={`/signal/${s.id}`} className="block">
+                  <SignalCard signal={s} />
+                </Link>
+              ))}
             </div>
           )}
         </section>
@@ -249,29 +278,20 @@ function CompetitorsTab({ insight }: { insight: Insight }) {
 
 // ── Earnings Tab ──────────────────────────────────────────────────────────────
 
-function EarningsTab({ insight }: { insight: Insight }) {
-  const hiringSignal = insight.signals.find((s) => s.type === "hiring_surge");
+function EarningsTab({ signals, ticker, sentiment, avgScore }: { signals: Signal[]; ticker: string; sentiment: Sentiment; avgScore: number }) {
+  const hiringSignal = signals.find((s) => s.type === "hiring_surge");
   const hiringPct = hiringSignal?.data?.headcount_change_pct as number | undefined;
 
   return (
     <div className="max-w-xl space-y-6">
       <PreEarningsCard
-        ticker={insight.ticker}
-        beat_probability={insight.composite_score / 100}
+        ticker={ticker}
+        beat_probability={avgScore / 100}
         hiring_trend_pct={hiringPct ?? null as any}
-        exec_sentiment={(insight.sentiment as Sentiment) || "neutral"}
-        technical_setup={insight.composite_score >= 60 ? "bullish" : insight.composite_score >= 40 ? "neutral" : "bearish"}
-        signals_count={insight.signal_count}
+        exec_sentiment={sentiment || "neutral"}
+        technical_setup={avgScore >= 60 ? "bullish" : avgScore >= 40 ? "neutral" : "bearish"}
+        signals_count={signals.length}
       />
-
-      {insight.llm_analysis && (
-        <section className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
-          <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Earnings Thesis</h3>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-(--color-text-primary)">
-            {insight.llm_analysis}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
