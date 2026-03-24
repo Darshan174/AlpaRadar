@@ -1,0 +1,102 @@
+[
+  {
+    "_comment": "TSLA — steady baseline then 2.5x spike, should fire strong",
+    "date": "2025-06-01T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 120, "engineering_postings": 40, "sales_postings": 30,
+    "department_breakdown": {"engineering": 40, "sales": 30, "manufacturing": 50}
+  },
+  {
+    "date": "2025-06-15T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 125, "engineering_postings": 42, "sales_postings": 32,
+    "department_breakdown": {"engineering": 42, "sales": 32, "manufacturing": 51}
+  },
+  {
+    "date": "2025-07-01T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 130, "engineering_postings": 45, "sales_postings": 33,
+    "department_breakdown": {"engineering": 45, "sales": 33, "manufacturing": 52}
+  },
+  {
+    "date": "2025-07-15T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 128, "engineering_postings": 43, "sales_postings": 31,
+    "department_breakdown": {"engineering": 43, "sales": 31, "manufacturing": 54}
+  },
+  {
+    "date": "2025-08-01T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 135, "engineering_postings": 46, "sales_postings": 34,
+    "department_breakdown": {"engineering": 46, "sales": 34, "manufacturing": 55}
+  },
+  {
+    "_comment": "Spike snapshot — 2.5x baseline",
+    "date": "2025-08-15T00:00:00", "ticker": "TSLA", "company_name": "Tesla Inc.",
+    "total_postings": 320, "engineering_postings": 130, "sales_postings": 60,
+    "department_breakdown": {"engineering": 130, "sales": 60, "manufacturing": 130}
+  },
+  {
+    "_comment": "GOOG — flat postings, should NOT fire",
+    "date": "2025-06-01T00:00:00", "ticker": "GOOG", "company_name": "Alphabet Inc.",
+    "total_postings": 200, "engineering_postings": 80, "sales_postings": 40,
+    "department_breakdown": {"engineering": 80, "sales": 40, "other": 80}
+  },
+  {
+    "date": "2025-06-15T00:00:00", "ticker": "GOOG", "company_name": "Alphabet Inc.",
+    "total_postings": 195, "engineering_postings": 78, "sales_postings": 42,
+    "department_breakdown": {"engineering": 78, "sales": 42, "other": 75}
+  },
+  {
+    "date": "2025-07-01T00:00:00", "ticker": "GOOG", "company_name": "Alphabet Inc.",
+    "total_postings": 205, "engineering_postings": 82, "sales_postings": 41,
+    "department_breakdown": {"engineering": 82, "sales": 41, "other": 82}
+  },
+  {
+    "date": "2025-07-15T00:00:00", "ticker": "GOOG", "company_name": "Alphabet Inc.",
+    "total_postings": 198, "engineering_postings": 79, "sales_postings": 39,
+    "department_breakdown": {"engineering": 79, "sales": 39, "other": 80}
+  },
+  {
+    "date": "2025-08-01T00:00:00", "ticker": "GOOG", "company_name": "Alphabet Inc.",
+    "total_postings": 202, "engineering_postings": 81, "sales_postings": 40,
+    "department_breakdown": {"engineering": 81, "sales": 40, "other": 81}
+  },
+  {
+    "_comment": "AMZN — moderate spike (1.7x), should fire moderate",
+    "date": "2025-06-01T00:00:00", "ticker": "AMZN", "company_name": "Amazon.com Inc.",
+    "total_postings": 300, "engineering_postings": 100, "sales_postings": 80,
+    "department_breakdown": {"engineering": 100, "sales": 80, "operations": 120}
+  },
+  {
+    "date": "2025-06-15T00:00:00", "ticker": "AMZN", "company_name": "Amazon.com Inc.",
+    "total_postings": 310, "engineering_postings": 105, "sales_postings": 82,
+    "department_breakdown": {"engineering": 105, "sales": 82, "operations": 123}
+  },
+  {
+    "date": "2025-07-01T00:00:00", "ticker": "AMZN", "company_name": "Amazon.com Inc.",
+    "total_postings": 295, "engineering_postings": 98, "sales_postings": 78,
+    "department_breakdown": {"engineering": 98, "sales": 78, "operations": 119}
+  },
+  {
+    "date": "2025-07-15T00:00:00", "ticker": "AMZN", "company_name": "Amazon.com Inc.",
+    "total_postings": 305, "engineering_postings": 102, "sales_postings": 81,
+    "department_breakdown": {"engineering": 102, "sales": 81, "operations": 122}
+  },
+  {
+    "date": "2025-08-01T00:00:00", "ticker": "AMZN", "company_name": "Amazon.com Inc.",
+    "total_postings": 520, "engineering_postings": 200, "sales_postings": 110,
+    "department_breakdown": {"engineering": 200, "sales": 110, "operations": 210}
+  },
+  {
+    "_comment": "TINY — small company, below min_posting_count, should NOT fire",
+    "date": "2025-06-01T00:00:00", "ticker": "TINY", "company_name": "Tiny Corp",
+    "total_postings": 3, "engineering_postings": 2, "sales_postings": 1,
+    "department_breakdown": {"engineering": 2, "sales": 1}
+  },
+  {
+    "date": "2025-07-01T00:00:00", "ticker": "TINY", "company_name": "Tiny Corp",
+    "total_postings": 3, "engineering_postings": 2, "sales_postings": 1,
+    "department_breakdown": {"engineering": 2, "sales": 1}
+  },
+  {
+    "date": "2025-08-01T00:00:00", "ticker": "TINY", "company_name": "Tiny Corp",
+    "total_postings": 8, "engineering_postings": 5, "sales_postings": 3,
+    "department_breakdown": {"engineering": 5, "sales": 3}
+  }
+]

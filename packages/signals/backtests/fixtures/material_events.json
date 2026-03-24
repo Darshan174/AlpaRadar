@@ -1,0 +1,134 @@
+{
+  "filings": [
+    {
+      "_comment": "INTC — auditor change + material impairment, should fire strong bearish",
+      "filing_date": "2025-09-10T00:00:00",
+      "ticker": "INTC",
+      "company_name": "Intel Corp.",
+      "form_type": "8-K",
+      "items": ["4.01", "2.06"],
+      "description": "Intel changes auditor and reports material impairment on foundry assets",
+      "source_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000050863"
+    },
+    {
+      "filing_date": "2025-09-15T00:00:00",
+      "ticker": "INTC",
+      "company_name": "Intel Corp.",
+      "form_type": "8-K",
+      "items": ["5.02", "2.05"],
+      "description": "CFO departure and restructuring costs announced",
+      "source_url": ""
+    },
+    {
+      "_comment": "CRM — acquisition completion, bullish",
+      "filing_date": "2025-09-20T00:00:00",
+      "ticker": "CRM",
+      "company_name": "Salesforce Inc.",
+      "form_type": "8-K",
+      "items": ["2.01", "1.01"],
+      "description": "Salesforce completes acquisition of data analytics startup",
+      "source_url": ""
+    },
+    {
+      "_comment": "NFLX — routine Reg FD, should NOT fire (no high-severity items)",
+      "filing_date": "2025-09-25T00:00:00",
+      "ticker": "NFLX",
+      "company_name": "Netflix Inc.",
+      "form_type": "8-K",
+      "items": ["7.01", "9.01"],
+      "description": "Netflix provides subscriber metrics update",
+      "source_url": ""
+    }
+  ],
+  "transcripts": [
+    {
+      "_comment": "INTC Q2 2025 — negative baseline",
+      "date": "2025-07-25T00:00:00",
+      "ticker": "INTC",
+      "company_name": "Intel Corp.",
+      "quarter": "Q2 2025",
+      "overall_sentiment": 0.10,
+      "guidance_sentiment": 0.05,
+      "positive_keyword_hits": 12,
+      "negative_keyword_hits": 8,
+      "risk_keyword_hits": 3,
+      "growth_keyword_hits": 5,
+      "notable_phrases": ["challenging macro environment", "operational efficiency"],
+      "source_url": ""
+    },
+    {
+      "_comment": "INTC Q3 2025 — sharply negative, tone deterioration",
+      "date": "2025-10-24T00:00:00",
+      "ticker": "INTC",
+      "company_name": "Intel Corp.",
+      "quarter": "Q3 2025",
+      "overall_sentiment": -0.35,
+      "guidance_sentiment": -0.50,
+      "positive_keyword_hits": 5,
+      "negative_keyword_hits": 18,
+      "risk_keyword_hits": 9,
+      "growth_keyword_hits": 2,
+      "notable_phrases": ["significant headwinds", "restructuring", "below expectations", "uncertain outlook"],
+      "source_url": ""
+    },
+    {
+      "_comment": "CRM Q2 2025 — moderate positive",
+      "date": "2025-08-28T00:00:00",
+      "ticker": "CRM",
+      "company_name": "Salesforce Inc.",
+      "quarter": "Q2 2025",
+      "overall_sentiment": 0.30,
+      "guidance_sentiment": 0.25,
+      "positive_keyword_hits": 15,
+      "negative_keyword_hits": 4,
+      "risk_keyword_hits": 2,
+      "growth_keyword_hits": 10,
+      "notable_phrases": ["strong pipeline", "AI integration"],
+      "source_url": ""
+    },
+    {
+      "_comment": "CRM Q3 2025 — significantly more positive, tone improvement",
+      "date": "2025-11-20T00:00:00",
+      "ticker": "CRM",
+      "company_name": "Salesforce Inc.",
+      "quarter": "Q3 2025",
+      "overall_sentiment": 0.65,
+      "guidance_sentiment": 0.70,
+      "positive_keyword_hits": 22,
+      "negative_keyword_hits": 2,
+      "risk_keyword_hits": 1,
+      "growth_keyword_hits": 18,
+      "notable_phrases": ["record bookings", "accelerating AI adoption", "raised guidance", "expanding margins"],
+      "source_url": ""
+    },
+    {
+      "_comment": "NFLX — minimal tone change, should NOT fire",
+      "date": "2025-07-18T00:00:00",
+      "ticker": "NFLX",
+      "company_name": "Netflix Inc.",
+      "quarter": "Q2 2025",
+      "overall_sentiment": 0.40,
+      "guidance_sentiment": 0.35,
+      "positive_keyword_hits": 14,
+      "negative_keyword_hits": 5,
+      "risk_keyword_hits": 2,
+      "growth_keyword_hits": 8,
+      "notable_phrases": ["steady subscriber growth"],
+      "source_url": ""
+    },
+    {
+      "date": "2025-10-17T00:00:00",
+      "ticker": "NFLX",
+      "company_name": "Netflix Inc.",
+      "quarter": "Q3 2025",
+      "overall_sentiment": 0.42,
+      "guidance_sentiment": 0.38,
+      "positive_keyword_hits": 15,
+      "negative_keyword_hits": 5,
+      "risk_keyword_hits": 2,
+      "growth_keyword_hits": 9,
+      "notable_phrases": ["continued momentum"],
+      "source_url": ""
+    }
+  ]
+}
