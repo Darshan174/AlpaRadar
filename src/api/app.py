@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from src.api.middleware import APIKeyMiddleware, RateLimitMiddleware, RequestLoggingMiddleware
-from src.api.routes import chat, intelligence, signals, watchlist
+from src.api.routes import chat, feed, intelligence, signals, watchlist
 from src.api.schemas import HealthResponse
 from src.config import settings
 from src.logging_config import get_logger, setup_logging
@@ -138,6 +138,7 @@ def create_app() -> FastAPI:
     )
 
     # Routes
+    app.include_router(feed.router)
     app.include_router(signals.router)
     app.include_router(intelligence.router)
     app.include_router(chat.router)

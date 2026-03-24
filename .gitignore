@@ -10,4 +10,6 @@ build/
 .ruff_cache/
 node_modules/
 .next/
+.env.local
+web/.env.local
 *.onnx
