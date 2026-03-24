@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # SEC EDGAR
+    sec_user_agent: str = "AlphaRadar research@alpharadar.dev"
+
+    # Job Postings
+    serpapi_key: str = ""
+
     # Scheduler
     ingestion_interval_hours: int = 6
 
