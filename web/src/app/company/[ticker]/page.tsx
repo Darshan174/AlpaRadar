@@ -6,13 +6,21 @@ import Link from "next/link";
 import { SignalCard } from "@/components/signal-card";
 import { ScoreBadge } from "@/components/score-badge";
 import { SentimentBadge } from "@/components/sentiment-badge";
-import { HeadcountChart } from "@/components/headcount-chart";
 import { ExecRoster } from "@/components/exec-roster";
-import { TalentFlow } from "@/components/talent-flow";
-import { PreEarningsCard } from "@/components/pre-earnings-card";
 import { EvidenceCard } from "@/components/evidence-card";
 import { getCompanyDetail } from "@/lib/api";
-import type { Signal, Sentiment, CompanyDetail, Evidence } from "@/lib/types";
+import {
+  collectEvidence,
+  extractDataHighlights,
+  extractExecutiveMentions,
+  extractReferencedCompanies,
+  getAverageScore,
+  getEvidenceSources,
+  getSentimentBalance,
+  getSignalMix,
+  getTopSignals,
+} from "@/lib/presentation";
+import type { Brief, CompanyDetail, CompanyInfo, Signal } from "@/lib/types";
 
 type Tab = "overview" | "executives" | "competitors" | "earnings";
 
@@ -26,272 +34,499 @@ export default function CompanyDNAPage() {
 
   useEffect(() => {
     if (!ticker) return;
-    setLoading(true);
-    setError(null);
-    getCompanyDetail(ticker)
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function loadCompany() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await getCompanyDetail(ticker);
+        if (!cancelled) setData(result);
+      } catch (issue) {
+        if (!cancelled) setError(issue instanceof Error ? issue.message : "Unable to load company intelligence");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadCompany();
+    return () => {
+      cancelled = true;
+    };
   }, [ticker]);
 
   if (loading) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-(--color-text-muted)">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
-        <p className="text-sm">Loading {ticker}...</p>
-        <p className="text-xs">Fetching signals and intelligence</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
-        <div className="rounded-lg border border-(--color-bearish)/30 bg-(--color-bearish)/10 p-6 text-center text-sm text-(--color-bearish)">
-          <p className="font-medium">Could not load {ticker}</p>
-          <p className="mt-1 text-xs text-(--color-text-muted)">{error}</p>
+      <div className="mx-auto flex min-h-[70vh] max-w-[1600px] items-center justify-center p-6">
+        <div className="flex items-center gap-3 text-sm text-(--color-text-muted)">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
+          Loading company intelligence for {ticker}...
         </div>
-        <Link href="/" className="text-sm text-(--color-accent) hover:underline">Back to home</Link>
       </div>
     );
   }
 
-  if (!data || !data.company) return null;
+  if (error || !data?.company) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-[1600px] items-center justify-center p-6">
+        <div className="rounded-[28px] border border-(--color-bearish)/30 bg-(--color-bearish)/10 p-8 text-center text-sm text-(--color-bearish)">
+          <div className="text-lg font-semibold">Could not load {ticker}</div>
+          <p className="mt-2 text-(--color-text-secondary)">{error || "Unknown error"}</p>
+          <Link href="/" className="mt-5 inline-flex rounded-full border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-secondary)">
+            Return to landing page
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  const { company, signals, signal_count } = data;
-  const avgScore = signals.length > 0
-    ? signals.reduce((sum, s) => sum + s.score, 0) / signals.length
-    : 0;
-  const netSentiment = signals.reduce(
-    (acc, s) => (s.sentiment === "bullish" ? acc + 1 : s.sentiment === "bearish" ? acc - 1 : acc),
-    0,
-  );
-  const sentiment: Sentiment = netSentiment > 0 ? "bullish" : netSentiment < 0 ? "bearish" : "neutral";
+  const { company, signals, briefs } = data;
+  const sentiment = getSentimentBalance(signals);
+  const avgScore = getAverageScore(signals);
+  const executives = extractExecutiveMentions(signals);
+  const evidence = collectEvidence(signals);
+  const signalMix = getSignalMix(signals);
+  const topSignals = getTopSignals(signals, 4);
+  const evidenceSources = getEvidenceSources(evidence);
+  const referencedCompanies = extractReferencedCompanies(signals);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header bar */}
-      <div className="border-b border-(--color-border) px-6 py-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="mr-auto">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{company.ticker}</h1>
-              <SentimentBadge sentiment={sentiment} />
+    <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <section className="surface-panel rounded-[34px] p-6 lg:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-(--color-text-muted)">
+                Company DNA
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <h1 className="metric-value text-6xl text-(--color-text-primary)">{company.ticker}</h1>
+                <SentimentBadge sentiment={sentiment.bias} />
+                <ScoreBadge score={avgScore} size="lg" />
+              </div>
+              <p className="mt-3 text-xl text-(--color-text-secondary)">{company.name}</p>
+              <p className="mt-2 text-sm leading-7 text-(--color-text-muted)">
+                {company.sector} · {company.industry}
+              </p>
             </div>
-            <p className="text-sm text-(--color-text-muted)">
-              {company.name} &middot; {company.sector} &middot; {company.industry}
-            </p>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-[10px] text-(--color-text-muted) uppercase">Avg Score</div>
-              <ScoreBadge score={avgScore} size="lg" />
-            </div>
-            <div className="text-center">
-              <div className="text-[10px] text-(--color-text-muted) uppercase">Signals</div>
-              <div className="text-xl font-bold text-(--color-accent)">{signal_count}</div>
-            </div>
-            <Link
-              href={`/compare?a=${ticker}`}
-              className="rounded-lg border border-(--color-border) px-3 py-1.5 text-xs font-medium text-(--color-text-secondary) hover:border-(--color-accent)/40 hover:text-(--color-accent)"
-            >
-              Compare
-            </Link>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="mt-4 flex gap-1">
-          {(["overview", "executives", "competitors", "earnings"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-                tab === t
-                  ? "bg-(--color-accent)/15 text-(--color-accent)"
-                  : "text-(--color-text-muted) hover:text-(--color-text-primary)"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/compare?a=${ticker}`}
+                className="rounded-full border border-(--color-border) px-5 py-3 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
+              >
+                Compare ticker
+              </Link>
+              <Link
+                href="/radar"
+                className="rounded-full bg-linear-to-r from-orange-500 to-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:translate-y-[-1px]"
+              >
+                Back to radar
+              </Link>
+            </div>
+          </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {tab === "overview" && <OverviewTab signals={signals} ticker={ticker} />}
-        {tab === "executives" && <ExecutivesTab signals={signals} ticker={ticker} />}
-        {tab === "competitors" && <CompetitorsTab signals={signals} ticker={ticker} />}
-        {tab === "earnings" && <EarningsTab signals={signals} ticker={ticker} sentiment={sentiment} avgScore={avgScore} />}
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Average signal score" value={avgScore} />
+            <MetricCard label="Total active signals" value={signals.length} />
+            <MetricCard label="Net sentiment" value={sentiment.net > 0 ? `+${sentiment.net}` : sentiment.net} />
+            <MetricCard label="Evidence sources" value={evidenceSources.length} />
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-2">
+            {(["overview", "executives", "competitors", "earnings"] as Tab[]).map((item) => (
+              <button
+                key={item}
+                onClick={() => setTab(item)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition ${
+                  tab === item
+                    ? "bg-linear-to-r from-orange-500 to-amber-500 text-white"
+                    : "border border-(--color-border) text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {tab === "overview" ? (
+          <OverviewTab
+            company={company}
+            signals={signals}
+            briefs={briefs}
+            evidence={evidence}
+            signalMix={signalMix}
+            topSignals={topSignals}
+          />
+        ) : null}
+
+        {tab === "executives" ? (
+          <ExecutivesTab signals={signals} executives={executives} sentimentBias={sentiment.bias} />
+        ) : null}
+
+        {tab === "competitors" ? (
+          <CompetitorsTab signals={signals} referencedCompanies={referencedCompanies} />
+        ) : null}
+
+        {tab === "earnings" ? (
+          <EarningsTab signals={signals} avgScore={avgScore} sentiment={sentiment.bias} latestBrief={briefs[0] || null} />
+        ) : null}
       </div>
     </div>
   );
 }
 
-// ── Overview Tab ──────────────────────────────────────────────────────────────
+function OverviewTab({
+  company,
+  signals,
+  briefs,
+  evidence,
+  signalMix,
+  topSignals,
+}: {
+  company: CompanyInfo;
+  signals: Signal[];
+  briefs: Brief[];
+  evidence: ReturnType<typeof collectEvidence>;
+  signalMix: ReturnType<typeof getSignalMix>;
+  topSignals: Signal[];
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-6">
+        <Panel title="Signal overview">
+          <div className="grid gap-3 md:grid-cols-2">
+            {topSignals.length ? (
+              topSignals.map((signal) => (
+                <Link key={signal.id} href={`/signal/${signal.id}`} className="block rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4 transition hover:border-(--color-border-strong)">
+                  <div className="text-xs uppercase tracking-[0.18em] text-(--color-accent)">
+                    {signal.type.replace(/_/g, " ")}
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-(--color-text-primary)">{signal.headline}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {extractDataHighlights(signal.data, 2).map((item) => (
+                      <span key={`${signal.id}-${item.label}`} className="data-chip">
+                        <span className="text-(--color-text-muted)">{item.label}</span>
+                        <span>{item.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="text-sm text-(--color-text-muted)">No active signals are available for this company.</div>
+            )}
+          </div>
+        </Panel>
 
-function OverviewTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
-  const hcData = [
-    { label: "Q1 '25", value: 4200 },
-    { label: "Q2 '25", value: 4450 },
-    { label: "Q3 '25", value: 4800 },
-    { label: "Q4 '25", value: 5100 },
-    { label: "Q1 '26", value: 5600 },
-  ];
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Latest AI brief">
+            {briefs[0] ? (
+              <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+                <p>{briefs[0].sections.what_happened}</p>
+                <p>{briefs[0].sections.why_it_matters}</p>
+              </div>
+            ) : (
+              <div className="text-sm text-(--color-text-muted)">
+                No generated brief is stored for {company.ticker} yet.
+              </div>
+            )}
+          </Panel>
 
-  // Collect all evidence from all signals for this company
-  const allEvidence: Evidence[] = signals.flatMap((s) => s.evidence || []);
+          <Panel title="Current dataset scope">
+            <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+              <p>This company view only shows current signals, briefs, and evidence returned by the API.</p>
+              <p>Unsupported panels such as synthetic headcount charts and invented talent flow have been removed.</p>
+            </div>
+          </Panel>
+        </div>
+
+        <Panel title={`Evidence stream (${evidence.length})`}>
+          {evidence.length ? (
+            <div className="space-y-3">
+              {evidence.slice(0, 6).map((item, index) => (
+                <EvidenceCard key={`${item.title}-${index}`} evidence={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">No source evidence attached yet.</div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="space-y-6">
+        <Panel title="Signal mix">
+          <div className="space-y-3">
+            {signalMix.length ? (
+              signalMix.map((bucket) => (
+                <div key={bucket.type} className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-(--color-text-primary)">{bucket.label}</div>
+                      <div className="mt-1 text-xs text-(--color-text-muted)">{bucket.count} signals</div>
+                    </div>
+                    <div className="metric-value text-2xl text-(--color-text-primary)">{bucket.avgScore}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-(--color-text-muted)">No signal mix detected yet.</div>
+            )}
+          </div>
+        </Panel>
+
+        <Panel title={`Active signals (${signals.length})`}>
+          {signals.length ? (
+            <div className="space-y-4">
+              {signals.map((signal) => (
+                <Link key={signal.id} href={`/signal/${signal.id}`} className="block">
+                  <SignalCard signal={signal} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">No live signals for this company.</div>
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function ExecutivesTab({
+  signals,
+  executives,
+  sentimentBias,
+}: {
+  signals: Signal[];
+  executives: ReturnType<typeof extractExecutiveMentions>;
+  sentimentBias: "bullish" | "bearish" | "neutral";
+}) {
+  const executiveSignals = signals.filter((signal) => signal.type === "executive_move");
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Left: chart + evidence */}
-        <div className="space-y-6 lg:col-span-3">
-          <section className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
-            <h3 className="mb-4 text-sm font-semibold text-(--color-text-secondary)">Headcount Trend</h3>
-            <HeadcountChart data={hcData} height={180} />
-          </section>
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard label="Exec signals" value={executiveSignals.length} />
+        <MetricCard label="Named executives" value={executives.length} />
+        <MetricCard label="Leadership tone" value={sentimentBias} />
+      </div>
 
-          {/* Evidence sources */}
-          {allEvidence.length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">
-                Source Evidence ({allEvidence.length})
-              </h3>
-              <div className="space-y-2">
-                {allEvidence.slice(0, 6).map((e, i) => (
-                  <EvidenceCard key={i} evidence={e} />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Panel title="Executive roster">
+          {executives.length ? (
+            <ExecRoster executives={executives} />
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">No executive names or titles are present in the current signal set.</div>
+          )}
+        </Panel>
+
+        <div className="space-y-6">
+          <Panel title="Leadership read-through">
+            <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+              <p>This tab now surfaces only executive context explicitly named in the current company signals.</p>
+              <p>If the API has no executive names or titles for this company, the section remains empty rather than fabricating a roster.</p>
+            </div>
+          </Panel>
+
+          <Panel title={`Executive signals (${executiveSignals.length})`}>
+            {executiveSignals.length ? (
+              <div className="space-y-4">
+                {executiveSignals.map((signal) => (
+                  <Link key={signal.id} href={`/signal/${signal.id}`} className="block">
+                    <SignalCard signal={signal} />
+                  </Link>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="text-sm text-(--color-text-muted)">No executive movement signals are active.</div>
+            )}
+          </Panel>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Right: signal feed */}
-        <div className="space-y-3 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-(--color-text-secondary)">
-            Active Signals ({signals.length})
-          </h3>
-          {signals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
-              No signals detected for {ticker}
+function CompetitorsTab({
+  signals,
+  referencedCompanies,
+}: {
+  signals: Signal[];
+  referencedCompanies: string[];
+}) {
+  const competitorSignals = signals.filter((signal) => signal.type === "competitor_shift");
+  const sectorSignals = signals.filter((signal) => signal.type === "sector_pulse");
+  const hiringSignals = signals.filter((signal) => signal.type === "hiring_surge");
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard label="Competitor signals" value={competitorSignals.length} />
+        <MetricCard label="Sector signals" value={sectorSignals.length} />
+        <MetricCard label="Hiring signals" value={hiringSignals.length} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Panel title="Referenced companies in current signals">
+          {referencedCompanies.length ? (
+            <div className="flex flex-wrap gap-2">
+              {referencedCompanies.map((item) => (
+                <span key={item} className="data-chip">{item}</span>
+              ))}
             </div>
           ) : (
-            signals.map((s) => (
-              <Link key={s.id} href={`/signal/${s.id}`} className="block">
-                <SignalCard signal={s} />
+            <div className="text-sm text-(--color-text-muted)">
+              The current company dataset does not name competitor companies directly.
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Context">
+          <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+            <p>This tab only shows competitor or sector context that is explicitly present in the current company data.</p>
+            <p>If no competitor-shift data exists for this company, AlphaRadar now leaves the section empty rather than inferring talent flow or rival movement.</p>
+          </div>
+        </Panel>
+      </div>
+
+      <Panel title={`Competitor-related signals (${competitorSignals.length + sectorSignals.length})`}>
+        {competitorSignals.length || sectorSignals.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[...competitorSignals, ...sectorSignals].map((signal) => (
+              <Link key={signal.id} href={`/signal/${signal.id}`} className="block">
+                <SignalCard signal={signal} />
               </Link>
-            ))
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-(--color-text-muted)">No competitor or sector context signals are available for this company.</div>
+        )}
+      </Panel>
     </div>
   );
 }
 
-// ── Executives Tab ────────────────────────────────────────────────────────────
-
-function ExecutivesTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
-  const mockExecs = [
-    { name: "Jensen Huang", title: "CEO", from_company: undefined, is_new: false },
-    { name: "Colette Kress", title: "CFO", from_company: undefined, is_new: false },
-    { name: "Devi Shankar", title: "VP of AI Platforms", from_company: "Google", is_new: true },
-    { name: "Michael Chen", title: "CTO", from_company: "Meta", is_new: true },
-  ];
-
-  const execSignals = signals.filter((s) => s.type === "executive_move");
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Executive Roster</h3>
-          <ExecRoster executives={mockExecs} />
-        </section>
-
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Executive Signals</h3>
-          {execSignals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
-              No executive movement signals detected
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {execSignals.map((s) => (
-                <Link key={s.id} href={`/signal/${s.id}`} className="block">
-                  <SignalCard signal={s} />
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+function EarningsTab({
+  signals,
+  avgScore,
+  sentiment,
+  latestBrief,
+}: {
+  signals: Signal[];
+  avgScore: number;
+  sentiment: "bullish" | "bearish" | "neutral";
+  latestBrief: Brief | null;
+}) {
+  const relevantSignals = signals.filter((signal) => ["hiring_surge", "growth_price_divergence", "executive_move"].includes(signal.type));
+  const earningsMetrics = relevantSignals.flatMap((signal) =>
+    extractDataHighlights(signal.data, 3).map((item) => ({
+      signalId: signal.id,
+      type: signal.type,
+      ...item,
+    })),
   );
-}
-
-// ── Competitors Tab ───────────────────────────────────────────────────────────
-
-function CompetitorsTab({ signals, ticker }: { signals: Signal[]; ticker: string }) {
-  const mockFlows = [
-    { from: "AMD", to: ticker, count: 23 },
-    { from: "Intel", to: ticker, count: 18 },
-    { from: ticker, to: "OpenAI", count: 8 },
-    { from: "Google", to: ticker, count: 15 },
-    { from: ticker, to: "Meta", count: 5 },
-  ];
-
-  const compSignals = signals.filter((s) => s.type === "competitor_shift");
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Talent Flow</h3>
-          <p className="mb-3 text-xs text-(--color-text-muted)">
-            Where employees are moving to/from. Green = inbound (bullish), red = outbound.
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-6">
+        <Panel title="Available earnings context">
+          <div className="grid gap-3 md:grid-cols-2">
+            <MetricCard label="Average signal score" value={avgScore} />
+            <MetricCard label="Signal sentiment" value={sentiment} />
+          </div>
+          <p className="mt-4 text-sm leading-7 text-(--color-text-secondary)">
+            This section only surfaces signal data that exists for the current company. Beat probabilities and inferred earnings forecasts are intentionally not generated in the UI.
           </p>
-          <TalentFlow flows={mockFlows} focusTicker={ticker} />
-        </section>
+        </Panel>
 
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-(--color-text-secondary)">Competitor Signals</h3>
-          {compSignals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-(--color-border) p-6 text-center text-xs text-(--color-text-muted)">
-              No competitor shift signals detected
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {compSignals.map((s) => (
-                <Link key={s.id} href={`/signal/${s.id}`} className="block">
-                  <SignalCard signal={s} />
+        <Panel title="Catalyst stack">
+          {relevantSignals.length ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {relevantSignals.map((signal) => (
+                <Link key={signal.id} href={`/signal/${signal.id}`} className="block rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4 transition hover:border-(--color-border-strong)">
+                  <div className="text-xs uppercase tracking-[0.18em] text-(--color-accent)">
+                    {signal.type.replace(/_/g, " ")}
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-(--color-text-primary)">{signal.headline}</div>
                 </Link>
               ))}
             </div>
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">No earnings-relevant signals are available in the current dataset.</div>
           )}
-        </section>
+        </Panel>
+
+        <Panel title="Structured metrics">
+          {earningsMetrics.length ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {earningsMetrics.map((metric, index) => (
+                <Link key={`${metric.signalId}-${metric.label}-${index}`} href={`/signal/${metric.signalId}`} className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4 transition hover:border-(--color-border-strong)">
+                  <div className="text-xs uppercase tracking-[0.18em] text-(--color-text-muted)">{metric.type.replace(/_/g, " ")}</div>
+                  <div className="mt-2 text-sm font-semibold text-(--color-text-primary)">{metric.label}</div>
+                  <div className="mt-1 text-lg text-(--color-text-secondary)">{metric.value}</div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">No structured metrics are available for current earnings-related signals.</div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="space-y-6">
+        <Panel title="Briefing context">
+          {latestBrief ? (
+            <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+              <p>{latestBrief.sections.why_it_matters}</p>
+              <p>{latestBrief.sections.risks}</p>
+            </div>
+          ) : (
+            <div className="text-sm text-(--color-text-muted)">
+              No stored earnings framing is available yet.
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Checklist">
+          <div className="space-y-3 text-sm text-(--color-text-secondary)">
+            {[
+              "Review whether hiring metrics in the current signals support an operating acceleration story.",
+              "Confirm whether executive changes reinforce or weaken the current thesis.",
+              "Check if evidence breadth is wide enough to trust the signal cluster.",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+                <span className="mt-1 h-2 w-2 rounded-full bg-(--color-accent)" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
     </div>
   );
 }
 
-// ── Earnings Tab ──────────────────────────────────────────────────────────────
-
-function EarningsTab({ signals, ticker, sentiment, avgScore }: { signals: Signal[]; ticker: string; sentiment: Sentiment; avgScore: number }) {
-  const hiringSignal = signals.find((s) => s.type === "hiring_surge");
-  const hiringPct = hiringSignal?.data?.headcount_change_pct as number | undefined;
-
+function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="max-w-xl space-y-6">
-      <PreEarningsCard
-        ticker={ticker}
-        beat_probability={avgScore / 100}
-        hiring_trend_pct={hiringPct ?? null as any}
-        exec_sentiment={sentiment || "neutral"}
-        technical_setup={avgScore >= 60 ? "bullish" : avgScore >= 40 ? "neutral" : "bearish"}
-        signals_count={signals.length}
-      />
+    <div className="surface-panel rounded-[28px] p-5">
+      <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+        {label}
+      </div>
+      <div className="mt-4 metric-value text-4xl text-(--color-text-primary)">{value}</div>
     </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="surface-panel rounded-[30px] p-5 lg:p-6">
+      <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+        {title}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }

@@ -8,7 +8,8 @@ import { ScoreBadge } from "@/components/score-badge";
 import { SentimentBadge } from "@/components/sentiment-badge";
 import { BriefSection } from "@/components/brief-section";
 import { EvidenceCard } from "@/components/evidence-card";
-import type { SignalDetail, Evidence } from "@/lib/types";
+import { extractDataHighlights, formatRelativeTime } from "@/lib/presentation";
+import type { SignalDetail } from "@/lib/types";
 import { SIGNAL_LABELS, SIGNAL_COLORS } from "@/lib/types";
 
 export default function SignalDetailPage() {
@@ -20,138 +21,155 @@ export default function SignalDetailPage() {
 
   useEffect(() => {
     if (!signalId) return;
-    setLoading(true);
-    getSignalDetail(signalId)
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function loadSignal() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await getSignalDetail(signalId);
+        if (!cancelled) setData(result);
+      } catch (issue) {
+        if (!cancelled) setError(issue instanceof Error ? issue.message : "Unable to load this signal");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadSignal();
+    return () => {
+      cancelled = true;
+    };
   }, [signalId]);
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
+      <div className="mx-auto flex min-h-[70vh] max-w-[1600px] items-center justify-center p-6">
+        <div className="flex items-center gap-3 text-sm text-(--color-text-muted)">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent" />
+          Loading signal detail...
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
-        <div className="rounded-lg border border-(--color-bearish)/30 bg-(--color-bearish)/10 p-6 text-center text-sm text-(--color-bearish)">
-          <p className="font-medium">Signal not found</p>
-          <p className="mt-1 text-xs text-(--color-text-muted)">{error || "Unknown error"}</p>
+      <div className="mx-auto flex min-h-[70vh] max-w-[1600px] items-center justify-center p-6">
+        <div className="rounded-[28px] border border-(--color-bearish)/30 bg-(--color-bearish)/10 p-8 text-center text-sm text-(--color-bearish)">
+          <div className="text-lg font-semibold">Signal not found</div>
+          <p className="mt-2 text-(--color-text-secondary)">{error || "Unknown error"}</p>
+          <Link href="/radar" className="mt-5 inline-flex rounded-full border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-secondary)">
+            Return to radar
+          </Link>
         </div>
-        <Link href="/radar" className="text-sm text-(--color-accent) hover:underline">
-          Back to Radar
-        </Link>
       </div>
     );
   }
 
   const { signal, brief, company } = data;
   const typeColor = SIGNAL_COLORS[signal.type] || "text-(--color-text-secondary)";
+  const highlights = extractDataHighlights(signal.data, 8);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="border-b border-(--color-border) px-6 py-4">
-        <div className="mb-2 flex items-center gap-2 text-xs text-(--color-text-muted)">
-          <Link href="/radar" className="hover:text-(--color-accent)">Radar</Link>
-          <span>/</span>
-          <Link href={`/company/${signal.ticker}`} className="hover:text-(--color-accent)">
-            {signal.ticker}
-          </Link>
-          <span>/</span>
-          <span className="text-(--color-text-secondary)">Signal</span>
-        </div>
-
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <span className={`text-xs font-bold uppercase tracking-wider ${typeColor}`}>
-                {SIGNAL_LABELS[signal.type]}
-              </span>
-              <StrengthPill strength={signal.strength} />
-              <SentimentBadge sentiment={signal.sentiment} />
-            </div>
-            <h1 className="text-xl font-bold text-(--color-text-primary)">{signal.headline}</h1>
-            <div className="mt-1 flex items-center gap-3 text-xs text-(--color-text-muted)">
-              <Link href={`/company/${signal.ticker}`} className="font-semibold text-(--color-text-primary) hover:text-(--color-accent)">
-                {signal.ticker}
-              </Link>
-              {company && <span>{company.name}</span>}
-              <span>{new Date(signal.detected_at).toLocaleString()}</span>
-            </div>
+    <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        <section className="surface-panel rounded-[34px] p-6 lg:p-8">
+          <div className="flex flex-wrap items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-(--color-text-muted)">
+            <Link href="/radar" className="hover:text-(--color-text-primary)">Radar</Link>
+            <span>/</span>
+            <Link href={`/company/${signal.ticker}`} className="hover:text-(--color-text-primary)">{signal.ticker}</Link>
+            <span>/</span>
+            <span>Signal Detail</span>
           </div>
-          <ScoreBadge score={signal.score} size="lg" />
-        </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-3xl space-y-8">
-          {/* Signal detail */}
-          <section className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-(--color-text-muted)">
-              Signal Detail
-            </h3>
-            <p className="text-sm leading-relaxed text-(--color-text-primary)">{signal.detail}</p>
+          <div className="mt-5 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-4xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full border border-current/20 bg-white/5 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.22em] ${typeColor}`}>
+                  {SIGNAL_LABELS[signal.type]}
+                </span>
+                <StrengthPill strength={signal.strength} />
+                <SentimentBadge sentiment={signal.sentiment} />
+              </div>
 
-            {/* Data points */}
-            {signal.data && Object.keys(signal.data).length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {Object.entries(signal.data)
-                  .filter(([k]) => !["source", "source_url"].includes(k))
-                  .slice(0, 6)
-                  .map(([key, value]) => (
-                    <div key={key} className="rounded-lg border border-(--color-border) bg-(--color-bg-secondary) p-3">
-                      <div className="text-[10px] text-(--color-text-muted)">{key.replace(/_/g, " ")}</div>
-                      <div className="text-sm font-semibold text-(--color-text-primary)">
-                        {typeof value === "number"
-                          ? value > 1_000_000
-                            ? `$${(value / 1_000_000).toFixed(1)}M`
-                            : value % 1 !== 0
-                            ? value.toFixed(1)
-                            : value.toLocaleString()
-                          : Array.isArray(value)
-                          ? value.join(", ")
-                          : String(value)}
-                      </div>
-                    </div>
+              <h1 className="display-title mt-5 text-4xl text-(--color-text-primary) sm:text-5xl">
+                {signal.headline}
+              </h1>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-(--color-text-secondary)">
+                <Link href={`/company/${signal.ticker}`} className="font-semibold text-(--color-text-primary)">
+                  {signal.ticker}
+                </Link>
+                {company ? <span>{company.name}</span> : null}
+                <span>{formatRelativeTime(signal.detected_at)}</span>
+              </div>
+            </div>
+
+            <ScoreBadge score={signal.score} size="lg" />
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+            <MetricCard label="Signal score" value={signal.score} />
+            <MetricCard label="Strength" value={signal.strength} />
+            <MetricCard label="Evidence count" value={signal.evidence?.length || 0} />
+            <MetricCard label="Company" value={signal.ticker} />
+          </div>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6">
+            <Panel title="Signal detail">
+              <p className="text-sm leading-8 text-(--color-text-secondary)">{signal.detail}</p>
+            </Panel>
+
+            {signal.evidence?.length ? (
+              <Panel title={`Source evidence (${signal.evidence.length})`}>
+                <div className="space-y-3">
+                  {signal.evidence.map((item, index) => (
+                    <EvidenceCard key={`${item.title}-${index}`} evidence={item} />
                   ))}
-              </div>
-            )}
-          </section>
+                </div>
+              </Panel>
+            ) : null}
 
-          {/* Evidence cards */}
-          {signal.evidence && signal.evidence.length > 0 && (
-            <section>
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-(--color-text-muted)">
-                Source Evidence ({signal.evidence.length})
-              </h3>
+            {brief ? (
+              <Panel title="AI intelligence brief">
+                <BriefSection brief={brief} />
+              </Panel>
+            ) : null}
+          </div>
+
+          <div className="space-y-6">
+            <Panel title="Signal anatomy">
               <div className="space-y-3">
-                {signal.evidence.map((e: Evidence, i: number) => (
-                  <EvidenceCard key={i} evidence={e} />
-                ))}
+                {highlights.length ? (
+                  highlights.map((item) => (
+                    <div key={item.label} className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-(--color-text-muted)">{item.label}</div>
+                      <div className="mt-2 text-lg font-semibold text-(--color-text-primary)">{item.value}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-(--color-text-muted)">No structured signal data was attached.</div>
+                )}
               </div>
-            </section>
-          )}
+            </Panel>
 
-          {/* AI Brief */}
-          {brief && (
-            <section>
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-(--color-text-muted)">
-                AI Intelligence Brief
-              </h3>
-              <BriefSection brief={brief} />
-            </section>
-          )}
+            <Panel title="Decision framing">
+              <div className="space-y-3 text-sm leading-7 text-(--color-text-secondary)">
+                <p>Use the score and strength to judge urgency, but confirm with evidence breadth before acting.</p>
+                <p>Read this signal alongside company-level tabs to understand whether it is isolated or part of a broader pattern.</p>
+                <p>When the signal carries supporting evidence plus a generated brief, it is usually worth escalation.</p>
+              </div>
+            </Panel>
 
-          {/* Disclaimer */}
-          <div className="rounded-lg border border-(--color-border) bg-(--color-bg-secondary) p-4 text-center text-[10px] text-(--color-text-muted)">
-            AlphaRadar provides alternative data signals for informational purposes only.
-            This is not financial advice. Always do your own research before making investment decisions.
+            <Panel title="Compliance note">
+              <p className="text-sm leading-7 text-(--color-text-secondary)">
+                AlphaRadar provides alternative-data signals for informational purposes only. This is not financial advice and should be treated as research input rather than a recommendation.
+              </p>
+            </Panel>
           </div>
         </div>
       </div>
@@ -159,14 +177,37 @@ export default function SignalDetailPage() {
   );
 }
 
+function MetricCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="surface-panel rounded-[28px] p-5">
+      <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+        {label}
+      </div>
+      <div className="mt-4 metric-value text-4xl text-(--color-text-primary)">{value}</div>
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="surface-panel rounded-[30px] p-5 lg:p-6">
+      <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+        {title}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 function StrengthPill({ strength }: { strength: string }) {
   const colors: Record<string, string> = {
-    strong: "bg-(--color-strong)/15 text-(--color-strong)",
-    moderate: "bg-(--color-accent)/15 text-(--color-accent)",
-    weak: "bg-(--color-text-muted)/15 text-(--color-text-muted)",
+    strong: "border-(--color-strong)/25 bg-(--color-strong)/12 text-(--color-strong)",
+    moderate: "border-(--color-accent)/25 bg-(--color-accent)/12 text-(--color-accent)",
+    weak: "border-(--color-border-strong) bg-(--color-bg-hover)/55 text-(--color-text-muted)",
   };
+
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${colors[strength] || colors.weak}`}>
+    <span className={`rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] ${colors[strength] || colors.weak}`}>
       {strength}
     </span>
   );

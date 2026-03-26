@@ -109,6 +109,18 @@ export async function listCompanies(): Promise<{ companies: CompanyInfo[]; total
   return request(`/v1/companies`);
 }
 
+export async function getDatasetOverview(): Promise<{ companies: number; signals: number }> {
+  const [companyResponse, feedResponse] = await Promise.all([
+    listCompanies(),
+    getFeed({ limit: 1 }),
+  ]);
+
+  return {
+    companies: companyResponse.total,
+    signals: feedResponse.total,
+  };
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export async function sendChat(

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
@@ -22,11 +22,13 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-(--color-text-secondary) transition-colors hover:bg-(--color-bg-hover) hover:text-(--color-text-primary)"
+      className={`inline-flex items-center gap-2 rounded-full border border-(--color-border) bg-(--color-bg-card-strong) text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary) ${
+        compact ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
+      }`}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {dark ? <SunIcon className="h-3.5 w-3.5" /> : <MoonIcon className="h-3.5 w-3.5" />}
-      {dark ? "Light" : "Dark"}
+      {dark ? <SunIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} /> : <MoonIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />}
+      <span>{dark ? "Light mode" : "Dark mode"}</span>
     </button>
   );
 }

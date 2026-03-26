@@ -1,172 +1,406 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getDatasetOverview } from "@/lib/api";
 
-const FEATURES = [
-  { title: "Hiring Surges", desc: "Spot companies scaling headcount before Wall Street notices", icon: TrendUpIcon },
-  { title: "Executive Moves", desc: "Track C-suite movements between public companies in real-time", icon: PeopleIcon },
-  { title: "Growth / Price Gaps", desc: "Find stocks where fundamentals outpace the stock price", icon: GapIcon },
-  { title: "Competitor Intel", desc: "See talent flowing between rivals — who's winning the war", icon: FlowIcon },
-  { title: "Pre-Earnings Intel", desc: "Predict beats and misses using hiring + exec sentiment", icon: CalendarIcon },
-  { title: "Sector Pulse", desc: "Heatmap of which industries are expanding or contracting", icon: GridIcon },
+const SIGNAL_FAMILIES = ["Hiring", "Executive", "Divergence", "Competitor", "Sector"];
+const WORKSPACE_VIEWS = ["Radar", "Compare", "Ask AI", "Watchlist", "Company DNA", "Signal Detail"];
+
+const FEATURE_CARDS = [
+  {
+    title: "Radar",
+    href: "/radar",
+    eyebrow: "Signal feed",
+    description: "Scan the full signal stream, filter conviction, and move from market-wide anomalies into company-level drilldowns.",
+    bullets: ["Signal mix and market pulse", "Sector-signal panels from current feed data", "Fast filters for ticker, type, and score"],
+  },
+  {
+    title: "Company DNA",
+    href: "/company/NVDA",
+    eyebrow: "Deep drilldown",
+    description: "Unpack every ticker through its current signals, evidence, executive context, sector context, and briefing coverage.",
+    bullets: ["Dense tabbed intelligence views", "Evidence-backed signal narratives", "No frontend-generated fake charts"],
+  },
+  {
+    title: "Compare Rivals",
+    href: "/compare?a=NVDA",
+    eyebrow: "Competitive intelligence",
+    description: "Put two names side-by-side to compare the signals, summaries, and evidence the API actually returns.",
+    bullets: ["Score and sentiment comparison", "Signal mix and narrative comparison", "Evidence coverage side-by-side"],
+  },
+  {
+    title: "Ask AI",
+    href: "/chat",
+    eyebrow: "Analyst copilot",
+    description: "Interrogate the platform in plain English and keep the conversation grounded in current platform context.",
+    bullets: ["Context focus by ticker", "Prompt starters by workflow", "Structured answers from current platform data"],
+  },
+  {
+    title: "Watchlists",
+    href: "/watchlist",
+    eyebrow: "Portfolio monitoring",
+    description: "Track the names you care about, see which alert categories dominate your book, and jump back into analysis quickly.",
+    bullets: ["Actionable monitoring surface", "Coverage by alert type", "Quick links back into deep analysis"],
+  },
+  {
+    title: "Evidence Layer",
+    href: "/radar",
+    eyebrow: "Primary-source context",
+    description: "Every surfaced idea can be inspected through source evidence, AI brief sections, and structured signal metadata.",
+    bullets: ["Evidence cards and timestamps", "AI brief with risk framing", "Clean company and signal linkage"],
+  },
 ];
 
-const TRENDING = ["NVDA", "PLTR", "META", "SNOW", "CRM", "TSLA"];
+const WORKFLOW = [
+  {
+    step: "01",
+    title: "Scan the market",
+    description: "Start from radar to see what is changing across the current tracked companies and sectors.",
+  },
+  {
+    step: "02",
+    title: "Drill into a ticker",
+    description: "Open company DNA to understand why a name is lighting up and which evidence supports the move.",
+  },
+  {
+    step: "03",
+    title: "Pressure-test the thesis",
+    description: "Use compare and Ask AI to benchmark the current signal set against peers and surrounding context.",
+  },
+  {
+    step: "04",
+    title: "Monitor continuously",
+    description: "Move the company into a watchlist and keep the intelligence stream close to your portfolio process.",
+  },
+];
+
+const START_WITH = ["NVDA", "PLTR", "META", "SNOW", "CRM", "TSLA"];
 
 export default function LandingPage() {
   const [ticker, setTicker] = useState("");
+  const [dataset, setDataset] = useState<{ companies: number | null; signals: number | null; connected: boolean }>({
+    companies: null,
+    signals: null,
+    connected: false,
+  });
   const router = useRouter();
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const val = ticker.trim().toUpperCase();
-    if (val) router.push(`/company/${val}`);
+  useEffect(() => {
+    let cancelled = false;
+
+    getDatasetOverview()
+      .then((overview) => {
+        if (!cancelled) {
+          setDataset({
+            companies: overview.companies,
+            signals: overview.signals,
+            connected: true,
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDataset({
+            companies: null,
+            signals: null,
+            connected: false,
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleSearch(event: React.FormEvent) {
+    event.preventDefault();
+    const nextTicker = ticker.trim().toUpperCase();
+    if (nextTicker) router.push(`/company/${nextTicker}`);
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      {/* Hero */}
-      <section className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-        {/* Badge */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-(--color-accent)/20 bg-(--color-accent-subtle) px-4 py-1.5 text-xs font-medium text-(--color-accent)">
-          <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-(--color-accent)" />
-          Scanning 80M+ companies in real-time
-        </div>
+    <div className="relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.22),transparent_35%)]" />
+      <div className="absolute right-0 top-24 -z-10 h-80 w-80 rounded-full bg-sky-400/10 blur-[120px]" />
+      <div className="absolute left-8 top-64 -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-[120px]" />
 
-        <h1 className="mb-4 max-w-2xl text-4xl font-bold leading-tight tracking-tight md:text-5xl">
-          See what{" "}
-          <span className="text-(--color-accent)">hedge funds</span>{" "}
-          see — before the move
-        </h1>
+      <header className="mx-auto max-w-[1440px] px-6 pt-6 sm:px-8 lg:px-10">
+        <nav className="surface-panel flex flex-wrap items-center justify-between gap-4 rounded-[30px] px-5 py-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-orange-400 to-amber-600 text-base font-black text-white shadow-[0_16px_36px_rgba(249,115,22,0.34)]">
+              AR
+            </div>
+            <div>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-(--color-text-muted)">
+                AlphaRadar
+              </div>
+              <div className="mt-1 font-display text-xl text-(--color-text-primary)">
+                Alternative Data Intelligence
+              </div>
+            </div>
+          </Link>
 
-        <p className="mb-8 max-w-lg text-base text-(--color-text-secondary) md:text-lg">
-          Real-time hiring surges, executive movements, and competitive intelligence.
-          The alternative data edge, democratized.
-        </p>
+          <div className="hidden items-center gap-6 text-sm text-(--color-text-secondary) lg:flex">
+            <a href="#features" className="hover:text-(--color-text-primary)">Features</a>
+            <a href="#workflow" className="hover:text-(--color-text-primary)">Workflow</a>
+            <a href="#workspace" className="hover:text-(--color-text-primary)">Workspace</a>
+          </div>
 
-        {/* Search */}
-        <form onSubmit={handleSearch} className="mb-6 flex w-full max-w-md gap-2">
-          <input
-            type="text"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            placeholder="Enter any ticker (e.g. NVDA)"
-            className="flex-1 rounded-xl border border-(--color-border) bg-(--color-bg-card) px-5 py-3 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) outline-none transition-all focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/20 card-shadow"
-            maxLength={10}
-          />
-          <button
-            type="submit"
-            disabled={!ticker.trim()}
-            className="rounded-xl bg-(--color-accent) px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-(--color-accent-hover) disabled:opacity-40"
-          >
-            Analyze
-          </button>
-        </form>
-
-        {/* Trending tickers */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-(--color-text-muted)">Trending:</span>
-          {TRENDING.map((t) => (
+          <div className="flex items-center gap-3">
             <Link
-              key={t}
-              href={`/company/${t}`}
-              className="rounded-lg border border-(--color-border) bg-(--color-bg-card) px-3 py-1 text-xs font-medium text-(--color-text-secondary) transition-colors hover:border-(--color-accent)/40 hover:text-(--color-accent)"
+              href="/chat"
+              className="rounded-full border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
             >
-              {t}
+              Ask AI
             </Link>
-          ))}
-        </div>
-      </section>
+            <Link
+              href="/radar"
+              className="rounded-full bg-linear-to-r from-orange-500 to-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.28)] transition hover:translate-y-[-1px]"
+            >
+              Enter Radar
+            </Link>
+          </div>
+        </nav>
+      </header>
 
-      {/* Feature grid */}
-      <section className="border-t border-(--color-border) bg-(--color-bg-secondary) px-6 py-12">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-2 text-center text-lg font-semibold">
-            Intelligence that was <span className="text-(--color-accent)">$100K/year</span>. Now free.
-          </h2>
-          <p className="mb-8 text-center text-sm text-(--color-text-muted)">
-            Every signal hedge funds use to front-run earnings, spot sector rotations, and track talent wars.
-          </p>
+      <main className="mx-auto max-w-[1440px] px-6 pb-24 pt-8 sm:px-8 lg:px-10 lg:pt-12">
+        <section className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_460px] lg:items-center">
+          <div className="max-w-3xl">
+            <div className="kicker">Current platform overview</div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 transition-colors hover:border-(--color-accent)/30 card-shadow"
-              >
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-(--color-accent)/10">
-                  <f.icon className="h-4.5 w-4.5 text-(--color-accent)" />
+            <h1 className="display-title mt-6 text-5xl leading-[0.92] text-(--color-text-primary) sm:text-6xl lg:text-7xl">
+              Alternative-data research for teams that want signal density, not dashboard fluff.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-(--color-text-secondary)">
+              AlphaRadar brings hiring signals, executive movement, sector context, watchlists, and AI-assisted analysis into one workflow. This landing page now avoids hardcoded platform totals and only shows counts fetched from the current API.
+            </p>
+
+            <form onSubmit={handleSearch} className="surface-panel mt-8 flex flex-col gap-3 rounded-[30px] p-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                  Jump straight into a ticker
                 </div>
-                <div className="mb-1 text-sm font-semibold text-(--color-text-primary)">{f.title}</div>
-                <div className="text-xs leading-relaxed text-(--color-text-muted)">{f.desc}</div>
+                <input
+                  type="text"
+                  value={ticker}
+                  onChange={(event) => setTicker(event.target.value.toUpperCase())}
+                  placeholder="Enter any ticker, e.g. NVDA"
+                  maxLength={10}
+                  className="mt-2 w-full bg-transparent text-lg text-(--color-text-primary) outline-none placeholder:text-(--color-text-muted)"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!ticker.trim()}
+                className="rounded-[22px] bg-linear-to-r from-orange-500 to-amber-500 px-6 py-4 text-sm font-semibold text-white transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Open Company DNA
+              </button>
+            </form>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                Start with
+              </span>
+              {START_WITH.map((item) => (
+                <Link key={item} href={`/company/${item}`} className="data-chip hover:border-(--color-border-strong) hover:text-(--color-text-primary)">
+                  {item}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="surface-panel subtle-grid rounded-[36px] p-6 shadow-[0_30px_70px_rgba(2,6,23,0.32)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-(--color-text-muted)">
+                  Current Dataset
+                </div>
+                <div className="mt-2 font-display text-3xl text-(--color-text-primary)">
+                  Counts here come from the active API, not from hardcoded marketing numbers.
+                </div>
+              </div>
+              <span className="status-pill">{dataset.connected ? "API connected" : "API unavailable"}</span>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="surface-panel-muted rounded-[26px] p-4">
+                <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                  Dataset totals
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+                    <div className="text-xs text-(--color-text-muted)">Tracked companies</div>
+                    <div className="mt-2 metric-value text-4xl text-(--color-text-primary)">{dataset.companies ?? "—"}</div>
+                  </div>
+                  <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+                    <div className="text-xs text-(--color-text-muted)">Current signals</div>
+                    <div className="mt-2 metric-value text-4xl text-(--color-text-primary)">{dataset.signals ?? "—"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="surface-panel-muted rounded-[26px] p-4">
+                  <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                    Product scope
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-3">
+                      <div className="text-xs text-(--color-text-muted)">Signal families</div>
+                      <div className="mt-1 text-sm font-semibold text-(--color-text-primary)">{SIGNAL_FAMILIES.length}</div>
+                    </div>
+                    <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-3">
+                      <div className="text-xs text-(--color-text-muted)">Workspace views</div>
+                      <div className="mt-1 text-sm font-semibold text-(--color-text-primary)">{WORKSPACE_VIEWS.length}</div>
+                    </div>
+                    <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-3">
+                      <div className="text-xs text-(--color-text-muted)">Source of truth</div>
+                      <div className="mt-1 text-sm font-semibold text-(--color-text-primary)">Current API responses</div>
+                    </div>
+                    <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-3">
+                      <div className="text-xs text-(--color-text-muted)">Unavailable data</div>
+                      <div className="mt-1 text-sm font-semibold text-(--color-text-primary)">Not shown</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="surface-panel-muted rounded-[26px] p-4">
+                  <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                    Product scope
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[...SIGNAL_FAMILIES, "Watchlists", "AI Q&A"].map((item) => (
+                      <span key={item} className="data-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: "Tracked Companies", value: dataset.companies ?? "—", detail: "from `/v1/companies`" },
+            { label: "Current Signals", value: dataset.signals ?? "—", detail: "from `/v1/feed`" },
+            { label: "Signal Families", value: SIGNAL_FAMILIES.length, detail: "supported signal categories" },
+            { label: "Workspace Views", value: WORKSPACE_VIEWS.length, detail: "navigable product destinations" },
+          ].map((item) => (
+            <div key={item.label} className="surface-panel hover-lift rounded-[28px] p-5">
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+                {item.label}
+              </div>
+              <div className="mt-4 metric-value text-4xl text-(--color-text-primary)">{item.value}</div>
+              <div className="mt-2 text-sm text-(--color-text-secondary)">{item.detail}</div>
+            </div>
+          ))}
+        </section>
+
+        <section id="features" className="mt-20">
+          <div className="max-w-3xl">
+            <div className="kicker">Platform Features</div>
+            <h2 className="display-title mt-5 text-4xl text-(--color-text-primary) sm:text-5xl">
+              A professional research flow from first anomaly to monitored thesis.
+            </h2>
+            <p className="mt-5 text-lg leading-8 text-(--color-text-secondary)">
+              Every page in the product now has a clear job: scan, drill down, compare, interrogate, and monitor. The redesign keeps the denser workflow while removing fabricated platform statistics and synthetic visuals.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+            {FEATURE_CARDS.map((card) => (
+              <Link key={card.title} href={card.href} className="surface-panel hover-lift rounded-[30px] p-6">
+                <div className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-(--color-accent)">
+                  {card.eyebrow}
+                </div>
+                <div className="mt-3 font-display text-2xl text-(--color-text-primary)">{card.title}</div>
+                <p className="mt-3 text-sm leading-7 text-(--color-text-secondary)">{card.description}</p>
+                <div className="mt-5 space-y-2">
+                  {card.bullets.map((bullet) => (
+                    <div key={bullet} className="flex items-start gap-2 text-sm text-(--color-text-secondary)">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-(--color-accent)" />
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section id="workflow" className="mt-20 grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
+          <div className="surface-panel rounded-[34px] p-6 lg:p-8">
+            <div className="kicker">Standard Workflow</div>
+            <h2 className="display-title mt-5 text-4xl text-(--color-text-primary)">Built to feel like a serious analyst workspace.</h2>
+            <p className="mt-5 text-base leading-8 text-(--color-text-secondary)">
+              The UI now frames activity the way a research team expects: clear status, denser supporting panels, obvious next actions, and continuity across landing, app shell, and drilldown views. Unsupported or unauthenticated numbers are intentionally absent.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <div className="surface-panel-muted rounded-[24px] p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-(--color-text-muted)">Design Direction</div>
+                <div className="mt-2 text-lg font-semibold text-(--color-text-primary)">Cinematic, dense, and research-facing</div>
+              </div>
+              <div className="surface-panel-muted rounded-[24px] p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-(--color-text-muted)">Information Style</div>
+                <div className="mt-2 text-lg font-semibold text-(--color-text-primary)">Dashboards first, unsupported claims removed</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {WORKFLOW.map((item) => (
+              <div key={item.step} className="surface-panel hover-lift rounded-[30px] p-6">
+                <div className="flex items-start gap-4">
+                  <div className="metric-value text-4xl text-(--color-accent)">{item.step}</div>
+                  <div>
+                    <div className="text-xl font-semibold text-(--color-text-primary)">{item.title}</div>
+                    <p className="mt-2 text-sm leading-7 text-(--color-text-secondary)">{item.description}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section className="flex items-center justify-center gap-4 border-t border-(--color-border) px-6 py-8">
-        <Link
-          href="/radar"
-          className="rounded-xl bg-(--color-accent) px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-(--color-accent-hover)"
-        >
-          Open Live Radar
-        </Link>
-        <Link
-          href="/chat"
-          className="rounded-xl border border-(--color-border) px-6 py-2.5 text-sm font-medium text-(--color-text-secondary) transition hover:border-(--color-accent)/40 hover:text-(--color-accent)"
-        >
-          Ask AI anything
-        </Link>
-      </section>
+        <section id="workspace" className="mt-20 surface-panel rounded-[36px] p-6 lg:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="kicker">Inside The Workspace</div>
+              <h2 className="display-title mt-5 text-4xl text-(--color-text-primary)">Every destination inside the product is denser and grounded in current API data.</h2>
+            </div>
+            <Link
+              href="/radar"
+              className="rounded-full border border-(--color-border) px-5 py-3 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
+            >
+              Launch the app
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-5">
+            {[
+              ["Radar", "Filter by type, conviction, and ticker while seeing current pulse metrics."],
+              ["Company Tabs", "Overview, executives, competitors, and earnings show only what the current dataset actually provides."],
+              ["Compare", "See which company is ahead on current signals and supporting evidence."],
+              ["Ask AI", "Run research queries without leaving the platform context."],
+              ["Watchlist", "Treat monitored names like an operating book, not a blank favorites list."],
+            ].map(([title, description]) => (
+              <div key={title} className="surface-panel-muted rounded-[26px] p-4">
+                <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-accent)">
+                  {title}
+                </div>
+                <p className="mt-3 text-sm leading-7 text-(--color-text-secondary)">{description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
-  );
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-function TrendUpIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
-    </svg>
-  );
-}
-function PeopleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-    </svg>
-  );
-}
-function GapIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
-    </svg>
-  );
-}
-function FlowIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-    </svg>
-  );
-}
-function CalendarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-    </svg>
-  );
-}
-function GridIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
-    </svg>
   );
 }

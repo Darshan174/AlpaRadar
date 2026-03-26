@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "AlphaRadar — Alternative Data Intelligence",
-  description: "Democratizing hedge fund insights with real-time alternative data",
+  description: "Alternative data intelligence workspace",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,9 +18,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           } catch(e) {}
         `}} />
       </head>
-      <body className="flex h-screen overflow-hidden bg-(--color-bg-primary) text-(--color-text-primary) antialiased">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
+      <body className="bg-(--color-bg-primary) text-(--color-text-primary) antialiased">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

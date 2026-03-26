@@ -9,17 +9,16 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+        className={`max-w-[85%] rounded-[26px] px-4 py-4 text-sm leading-7 shadow-[0_18px_40px_rgba(2,6,23,0.16)] ${
           isUser
-            ? "rounded-br-md bg-(--color-accent) text-white"
-            : "rounded-bl-md border border-(--color-border) bg-(--color-bg-card) text-(--color-text-primary)"
+            ? "rounded-br-md bg-linear-to-br from-orange-500 to-amber-500 text-white"
+            : "surface-panel rounded-bl-md text-(--color-text-primary)"
         }`}
       >
-        {isUser ? (
-          content
-        ) : (
-          <div className="whitespace-pre-wrap">{content}</div>
-        )}
+        <div className={`mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${isUser ? "text-white/70" : "text-(--color-text-muted)"}`}>
+          {isUser ? "You" : "AlphaRadar"}
+        </div>
+        <div className="whitespace-pre-wrap">{content}</div>
       </div>
     </div>
   );

@@ -1,15 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getDatasetOverview } from "@/lib/api";
 import { ThemeToggle } from "./theme-toggle";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/radar", label: "Radar", icon: RadarIcon, badge: "LIVE" },
-  { href: "/compare", label: "Compare", icon: CompareIcon },
-  { href: "/chat", label: "Ask AI", icon: MessageIcon },
-  { href: "/watchlist", label: "Watchlist", icon: EyeIcon },
+  { href: "/", label: "Landing", icon: HomeIcon, description: "Platform overview" },
+  { href: "/radar", label: "Radar", icon: RadarIcon, description: "Current signal feed" },
+  { href: "/compare", label: "Compare", icon: CompareIcon, description: "Company versus company" },
+  { href: "/chat", label: "Ask AI", icon: MessageIcon, description: "Natural-language research" },
+  { href: "/watchlist", label: "Watchlist", icon: EyeIcon, description: "Monitored companies" },
 ];
 
 export function Sidebar() {
@@ -17,24 +19,24 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 flex-col border-r border-(--color-border) bg-(--color-bg-secondary)">
+      <aside className="hidden w-[320px] shrink-0 border-r border-(--color-border) bg-(--color-bg-secondary)/76 backdrop-blur-2xl md:flex">
         <SidebarContent pathname={pathname} />
       </aside>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden border-t border-(--color-border) bg-(--color-bg-secondary)">
+      <nav className="fixed bottom-3 left-3 right-3 z-50 flex rounded-full border border-(--color-border) bg-(--color-bg-card-strong)/92 p-1 shadow-[0_18px_36px_rgba(2,6,23,0.24)] backdrop-blur-2xl md:hidden">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors ${
-                active ? "text-(--color-accent)" : "text-(--color-text-muted)"
+              className={`flex flex-1 flex-col items-center gap-1 rounded-full py-2 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                active
+                  ? "bg-linear-to-r from-orange-500 to-amber-500 text-white"
+                  : "text-(--color-text-muted)"
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-[1.125rem] w-[1.125rem]" />
               {item.label}
             </Link>
           );
@@ -45,59 +47,147 @@ export function Sidebar() {
 }
 
 function SidebarContent({ pathname }: { pathname: string }) {
-  return (
-    <>
-      {/* Logo */}
-      <Link href="/" className="flex items-center gap-2.5 border-b border-(--color-border) px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-accent) text-sm font-bold text-white">
-          AR
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-(--color-text-primary)">AlphaRadar</div>
-          <div className="text-[10px] text-(--color-text-muted)">Alt-Data Intelligence</div>
-        </div>
-      </Link>
+  const [stats, setStats] = useState<{ companies: number | null; signals: number | null; connected: boolean }>({
+    companies: null,
+    signals: null,
+    connected: false,
+  });
 
-      {/* Search */}
-      <div className="px-3 pt-3 pb-1">
+  useEffect(() => {
+    let cancelled = false;
+
+    getDatasetOverview()
+      .then((overview) => {
+        if (!cancelled) {
+          setStats({
+            companies: overview.companies,
+            signals: overview.signals,
+            connected: true,
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStats({
+            companies: null,
+            signals: null,
+            connected: false,
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-b border-(--color-border) px-5 py-5">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-orange-400 to-amber-600 text-base font-black text-white shadow-[0_16px_36px_rgba(249,115,22,0.34)]">
+            AR
+          </div>
+          <div className="min-w-0">
+            <div className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-(--color-text-muted)">
+              AlphaRadar
+            </div>
+            <div className="mt-1 font-display text-xl text-(--color-text-primary)">
+              Alt-Data Intelligence
+            </div>
+          </div>
+        </Link>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="surface-panel-muted rounded-2xl px-3 py-3">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+              Companies
+            </div>
+            <div className="mt-2 metric-value text-xl text-(--color-text-primary)">{stats.companies ?? "—"}</div>
+            <div className="mt-1 text-xs text-(--color-text-secondary)">from current API</div>
+          </div>
+          <div className="surface-panel-muted rounded-2xl px-3 py-3">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+              Signals
+            </div>
+            <div className="mt-2 metric-value text-xl text-(--color-text-primary)">{stats.signals ?? "—"}</div>
+            <div className="mt-1 text-xs text-(--color-text-secondary)">feed total</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4">
         <SearchTicker />
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 space-y-0.5 px-3 py-2">
+      <div className="px-4 pt-5">
+        <div className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-(--color-text-muted)">
+          Workspace
+        </div>
+      </div>
+
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+              className={`group block rounded-[22px] border px-4 py-3 transition-all ${
                 active
-                  ? "bg-(--color-accent)/15 text-(--color-accent) font-medium"
-                  : "text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary)"
+                  ? "border-(--color-accent)/30 bg-(--color-accent)/12 shadow-[0_14px_28px_rgba(249,115,22,0.12)]"
+                  : "border-(--color-border) bg-(--color-bg-card)/70 hover:border-(--color-border-strong) hover:bg-(--color-bg-hover)/40"
               }`}
             >
-              <item.icon className="h-4 w-4" />
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="rounded-full bg-(--color-accent)/15 px-1.5 py-0.5 text-[9px] font-bold text-(--color-accent)">
-                  {item.badge}
-                </span>
-              )}
+              <div className="flex items-start gap-3">
+                <div
+                  className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl ${
+                    active
+                      ? "bg-(--color-accent) text-white"
+                      : "bg-(--color-bg-hover) text-(--color-text-secondary) group-hover:text-(--color-text-primary)"
+                  }`}
+                >
+                  <item.icon className="h-[1.125rem] w-[1.125rem]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-semibold ${active ? "text-(--color-text-primary)" : "text-(--color-text-secondary)"}`}>
+                    {item.label}
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-(--color-text-muted)">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-(--color-border) px-3 py-3 space-y-2">
-        <ThemeToggle />
-        <div className="flex items-center gap-2 px-3 text-xs text-(--color-text-muted)">
-          <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-(--color-bullish)" />
-          Scanning signals
+      <div className="border-t border-(--color-border) px-4 py-4">
+        <div className="surface-panel-muted rounded-[22px] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-(--color-text-muted)">
+                Dataset
+              </div>
+              <div className="mt-1 text-sm font-semibold text-(--color-text-primary)">
+                {stats.connected ? "API connected" : "Counts unavailable"}
+              </div>
+            </div>
+            {stats.connected ? <div className="live-dot" /> : null}
+          </div>
+
+          <p className="mt-4 text-xs leading-6 text-(--color-text-secondary)">
+            Sidebar totals are fetched from the current API responses. Hardcoded platform counts have been removed.
+          </p>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="text-xs text-(--color-text-muted)">Interface theme</div>
+            <ThemeToggle compact />
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -105,28 +195,26 @@ function SearchTicker() {
   return (
     <form
       action="/company"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
         const input = form.querySelector("input") as HTMLInputElement;
-        const val = input.value.trim().toUpperCase();
-        if (val) window.location.href = `/company/${val}`;
+        const value = input.value.trim().toUpperCase();
+        if (value) window.location.href = `/company/${value}`;
       }}
     >
       <div className="relative">
-        <SearchIcon className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-(--color-text-muted)" />
+        <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--color-text-muted)" />
         <input
           type="text"
-          placeholder="Look up ticker..."
+          placeholder="Drill into any ticker"
           maxLength={10}
-          className="w-full rounded-lg border border-(--color-border) bg-(--color-bg-card) py-1.5 pl-8 pr-3 text-xs text-(--color-text-primary) placeholder:text-(--color-text-muted) outline-none focus:border-(--color-accent)"
+          className="w-full rounded-[20px] border border-(--color-border) bg-(--color-bg-card-strong) py-3 pl-11 pr-4 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) outline-none transition focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)/20"
         />
       </div>
     </form>
   );
 }
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function HomeIcon({ className }: { className?: string }) {
   return (

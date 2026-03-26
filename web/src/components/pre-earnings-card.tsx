@@ -16,35 +16,33 @@ export function PreEarningsCard(props: PreEarningsProps) {
   const isLikely = pct >= 60;
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-5 card-shadow">
+    <div className="surface-panel rounded-[30px] p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="text-xs font-medium text-(--color-text-muted) uppercase tracking-wide">
+          <div className="text-[0.72rem] font-medium text-(--color-text-muted) uppercase tracking-[0.24em]">
             Pre-Earnings Intel
           </div>
           {props.earnings_date && (
-            <div className="mt-0.5 text-xs text-(--color-text-secondary)">
+            <div className="mt-1 text-xs text-(--color-text-secondary)">
               Earnings: {new Date(props.earnings_date).toLocaleDateString()}
             </div>
           )}
         </div>
         <div className="text-right">
-          <div className="text-xs text-(--color-text-muted)">Beat Probability</div>
-          <div className={`text-2xl font-bold ${isLikely ? "text-(--color-bullish)" : "text-(--color-bearish)"}`}>
+          <div className="text-xs uppercase tracking-[0.18em] text-(--color-text-muted)">Beat Probability</div>
+          <div className={`metric-value text-4xl ${isLikely ? "text-(--color-bullish)" : "text-(--color-bearish)"}`}>
             {pct}%
           </div>
         </div>
       </div>
 
-      {/* Probability bar */}
-      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-(--color-bg-hover)">
+      <div className="mb-5 h-2.5 w-full overflow-hidden rounded-full bg-(--color-bg-hover)">
         <div
           className={`h-full rounded-full transition-all ${isLikely ? "bg-(--color-bullish)" : "bg-(--color-bearish)"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
 
-      {/* Factor grid */}
       <div className="grid grid-cols-2 gap-3">
         <Factor
           label="Hiring Trend"
@@ -66,12 +64,12 @@ function Factor({ label, value, positive, sentiment }: {
   sentiment?: Sentiment;
 }) {
   return (
-    <div className="rounded-lg bg-(--color-bg-hover)/50 p-2.5">
-      <div className="text-[10px] text-(--color-text-muted)">{label}</div>
+    <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/32 p-3">
+      <div className="text-[0.68rem] uppercase tracking-[0.2em] text-(--color-text-muted)">{label}</div>
       {sentiment ? (
-        <div className="mt-1"><SentimentBadge sentiment={sentiment} /></div>
+        <div className="mt-3"><SentimentBadge sentiment={sentiment} /></div>
       ) : (
-        <div className={`text-sm font-semibold ${positive ? "text-(--color-bullish)" : "text-(--color-text-primary)"}`}>
+        <div className={`mt-3 text-sm font-semibold ${positive ? "text-(--color-bullish)" : "text-(--color-text-primary)"}`}>
           {value}
         </div>
       )}

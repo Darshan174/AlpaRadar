@@ -23,23 +23,22 @@ export function TalentFlow({ flows, focusTicker }: TalentFlowProps) {
         const barPct = (flow.count / maxCount) * 100;
 
         return (
-          <div key={i} className="rounded-lg border border-(--color-border) bg-(--color-bg-card) p-3 card-shadow">
-            <div className="mb-2 flex items-center gap-2 text-sm">
-              <span className={`font-medium ${inbound ? "text-(--color-text-muted)" : "text-(--color-text-primary)"}`}>
+          <div key={i} className="surface-panel rounded-[24px] p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm">
+              <span className={`font-semibold ${inbound ? "text-(--color-text-muted)" : "text-(--color-text-primary)"}`}>
                 {flow.from}
               </span>
               <span className={`text-xs ${inbound ? "text-(--color-bullish)" : "text-(--color-bearish)"}`}>
-                {inbound ? "-->" : "<--"}
+                {inbound ? "→" : "←"}
               </span>
-              <span className={`font-medium ${inbound ? "text-(--color-text-primary)" : "text-(--color-text-muted)"}`}>
+              <span className={`font-semibold ${inbound ? "text-(--color-text-primary)" : "text-(--color-text-muted)"}`}>
                 {flow.to}
               </span>
-              <span className="ml-auto text-xs font-bold text-(--color-text-secondary)">
-                {flow.count} people
+              <span className="ml-auto text-xs font-semibold uppercase tracking-[0.18em] text-(--color-text-secondary)">
+                {flow.count} moves
               </span>
             </div>
-            {/* Bar */}
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-(--color-bg-hover)">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-(--color-bg-hover)">
               <div
                 className={`h-full rounded-full transition-all ${inbound ? "bg-(--color-bullish)" : "bg-(--color-bearish)"}`}
                 style={{ width: `${barPct}%` }}

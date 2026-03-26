@@ -25,22 +25,26 @@ export function EvidenceCard({ evidence }: { evidence: Evidence }) {
   const colorClass = TYPE_COLORS[evidence.type] || "border-(--color-border) bg-(--color-bg-card)";
 
   return (
-    <div className={`rounded-xl border p-4 ${colorClass} transition-colors`}>
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-10 items-center justify-center rounded-md bg-(--color-bg-primary)/50 text-[9px] font-bold tracking-wider text-(--color-text-secondary)">
+    <div className={`rounded-[26px] border p-5 ${colorClass} shadow-[0_16px_36px_rgba(2,6,23,0.12)] transition-colors`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex items-center gap-3">
+          <span className="inline-flex h-10 w-12 items-center justify-center rounded-2xl bg-(--color-bg-primary)/45 text-[0.68rem] font-bold tracking-[0.24em] text-(--color-text-secondary)">
             {icon}
           </span>
-          <span className="text-sm font-semibold text-(--color-text-primary)">{evidence.title}</span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-(--color-text-primary)">{evidence.title}</div>
+            <div className="mt-1 text-[0.72rem] uppercase tracking-[0.22em] text-(--color-text-muted)">
+              {evidence.source}
+            </div>
+          </div>
         </div>
       </div>
 
       {evidence.detail && (
-        <p className="mb-2 text-xs leading-relaxed text-(--color-text-secondary)">{evidence.detail}</p>
+        <p className="mt-4 text-sm leading-7 text-(--color-text-secondary)">{evidence.detail}</p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 text-[10px] text-(--color-text-muted)">
-        <span>Source: {evidence.source}</span>
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-[0.72rem] text-(--color-text-muted)">
         {evidence.timestamp && (
           <span>{new Date(evidence.timestamp).toLocaleDateString()}</span>
         )}
@@ -51,7 +55,7 @@ export function EvidenceCard({ evidence }: { evidence: Evidence }) {
             rel="noopener noreferrer"
             className="text-(--color-accent) hover:underline"
           >
-            View source
+            Open source
           </a>
         )}
       </div>
