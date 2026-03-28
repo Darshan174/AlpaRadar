@@ -8,16 +8,19 @@ from src.analysis.analyzer import analyze_signals
 from src.api.schemas import (
     AnalyzeRequest,
     InsightResponse,
+    LLMStructuredResponse,
+    PairsTradeResponse,
     SectorPulseResponse,
     SectorScreenRequest,
     SignalResponse,
+    TradeSetupResponse,
 )
 from src.core.models import FusedInsight, Signal
 from src.ingestion.crustdata.client import CrustdataClient
 from src.ingestion.crustdata.transforms import to_company_profile, to_executive_profile
 from src.ingestion.market.price import fetch_market_data, ticker_to_domain
 from src.intelligence.fusion import generate_insight, generate_sector_insight
-from src.intelligence.scorer import score_insight
+from src.intelligence.scorer import get_signal_historical_stats
 from src.logging_config import get_logger
 from src.storage import supabase as db
 
@@ -98,19 +101,19 @@ async def analyze_ticker(request: AnalyzeRequest):
         competitor_profiles=competitor_profiles,
     )
 
-    # 6. Score
-    insight.composite_score = score_insight(insight)
-
-    # 7. LLM analysis
+    # 6. LLM analysis
     if insight.signals:
         try:
             insight.llm_analysis = await analyze_signals(insight)
+            from src.analysis.analyzer import extract_structured_signal_analysis
+
+            insight.llm_structured = extract_structured_signal_analysis(insight.llm_analysis)
             insight.summary = insight.llm_analysis[:300]
         except Exception as e:
             log.warning("llm_analysis_failed", ticker=ticker, error=str(e))
             insight.summary = f"{len(insight.signals)} signals detected for {ticker}"
 
-    # 8. Store
+    # 7. Store
     try:
         await db.store_insight(insight)
         for signal in insight.signals:
@@ -157,6 +160,41 @@ async def analyze_sector(request: SectorScreenRequest):
 
 
 def _to_insight_response(insight: FusedInsight) -> InsightResponse:
+    action_resp = None
+    pairs_trade_resp = None
+    llm_structured_resp = None
+    if insight.suggested_action:
+        sa = insight.suggested_action
+        action_resp = TradeSetupResponse(
+            action=sa.action.value,
+            time_horizon=sa.time_horizon.value,
+            conviction=sa.conviction,
+            rationale=sa.rationale,
+            risk_note=sa.risk_note,
+            historical_win_rate=sa.historical_win_rate,
+            historical_avg_return=sa.historical_avg_return,
+            historical_sample_size=sa.historical_sample_size,
+        )
+    if insight.pairs_trade:
+        pair = insight.pairs_trade
+        pairs_trade_resp = PairsTradeResponse(
+            long_ticker=pair.long_ticker,
+            short_ticker=pair.short_ticker,
+            long_company=pair.long_company,
+            short_company=pair.short_company,
+            long_score=pair.long_score,
+            short_score=pair.short_score,
+            divergence_score=pair.divergence_score,
+            rationale=pair.rationale,
+            sector=pair.sector,
+        )
+    if insight.llm_structured:
+        llm_structured_resp = LLMStructuredResponse(
+            suggested_action=insight.llm_structured.suggested_action,
+            time_horizon=insight.llm_structured.time_horizon,
+            conviction=insight.llm_structured.conviction,
+        )
+
     return InsightResponse(
         ticker=insight.ticker,
         company_name=insight.company_name,
@@ -164,6 +202,9 @@ def _to_insight_response(insight: FusedInsight) -> InsightResponse:
         sentiment=insight.sentiment.value,
         signal_count=insight.signal_count,
         signals=[_to_signal_response(s) for s in insight.signals],
+        suggested_action=action_resp,
+        pairs_trade=pairs_trade_resp,
+        llm_structured=llm_structured_resp,
         llm_analysis=insight.llm_analysis,
         summary=insight.summary,
         generated_at=insight.generated_at,
@@ -171,6 +212,17 @@ def _to_insight_response(insight: FusedInsight) -> InsightResponse:
 
 
 def _to_signal_response(signal: Signal) -> SignalResponse:
+    stats = get_signal_historical_stats(signal.type.value)
+    historical_win_rate = signal.historical_win_rate
+    historical_avg_return = signal.historical_avg_return
+    historical_sample_size = signal.historical_sample_size
+    if stats:
+        historical_win_rate = historical_win_rate if historical_win_rate is not None else stats["win_rate"]
+        historical_avg_return = historical_avg_return if historical_avg_return is not None else stats["avg_return_3m"]
+        historical_sample_size = (
+            historical_sample_size if historical_sample_size is not None else int(stats["sample_size"])
+        )
+
     return SignalResponse(
         id=signal.id,
         type=signal.type.value,
@@ -182,5 +234,8 @@ def _to_signal_response(signal: Signal) -> SignalResponse:
         detail=signal.detail,
         score=signal.score,
         data=signal.data,
+        historical_win_rate=historical_win_rate,
+        historical_avg_return=historical_avg_return,
+        historical_sample_size=historical_sample_size,
         detected_at=signal.detected_at,
     )

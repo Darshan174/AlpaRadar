@@ -42,6 +42,25 @@ class AlertChannel(str, enum.Enum):
     WEBHOOK = "webhook"
 
 
+class TradeAction(str, enum.Enum):
+    """Suggested portfolio action derived from signal fusion."""
+    ACCUMULATE = "accumulate"  # Strong bullish conviction
+    HOLD = "hold"              # Signals present but mixed
+    REDUCE = "reduce"          # Negative signals emerging
+    SHORT_CANDIDATE = "short_candidate"  # Strong bearish conviction
+    PAIRS_TRADE = "pairs_trade"  # Long/short within sector
+    TAKE_PROFIT = "take_profit"  # Price extended vs deteriorating alt-data
+    NO_ACTION = "no_action"      # Insufficient data
+
+
+class TimeHorizon(str, enum.Enum):
+    """How soon the signal thesis should play out."""
+    SHORT_TERM_CATALYST = "short_term_catalyst"  # Days to 2 weeks (e.g. earnings, exec departure)
+    MEDIUM_TERM_SWING = "medium_term_swing"      # 2 weeks to 3 months
+    LONG_TERM_COMPOUNDER = "long_term_compounder"  # 3+ months (e.g. sustained hiring surge)
+    VALUE_TRAP = "value_trap"  # Looks cheap but alt-data says avoid
+
+
 # ── Company Intelligence (from Crustdata) ──────────────────────────────────────
 
 
@@ -202,11 +221,46 @@ class Signal(BaseModel):
     detail: str
     score: float = Field(ge=0, le=100)
     data: dict[str, Any] = Field(default_factory=dict)
+    historical_win_rate: float | None = None
+    historical_avg_return: float | None = None
+    historical_sample_size: int | None = None
     detected_at: datetime = Field(default_factory=datetime.utcnow)
 
     @property
     def is_actionable(self) -> bool:
         return self.strength in (SignalStrength.STRONG, SignalStrength.MODERATE) and self.score >= 60
+
+
+class TradeSetup(BaseModel):
+    """A concrete trade suggestion derived from fused signals."""
+    action: TradeAction = TradeAction.NO_ACTION
+    time_horizon: TimeHorizon = TimeHorizon.MEDIUM_TERM_SWING
+    conviction: str = "low"  # "high", "medium", "low"
+    rationale: str = ""
+    risk_note: str = ""
+    historical_win_rate: float | None = None  # 0.0-1.0 if backtested
+    historical_avg_return: float | None = None  # percent
+    historical_sample_size: int | None = None
+
+
+class PairsTradeSetup(BaseModel):
+    """A market-neutral long/short pair suggestion."""
+    long_ticker: str
+    short_ticker: str
+    long_company: str = ""
+    short_company: str = ""
+    long_score: float = 0.0
+    short_score: float = 0.0
+    divergence_score: float = 0.0  # How far apart the two are
+    rationale: str = ""
+    sector: str = ""
+
+
+class LLMStructuredThesis(BaseModel):
+    """Structured fields parsed from the LLM narrative output."""
+    suggested_action: str = ""
+    time_horizon: str = ""
+    conviction: str = ""
 
 
 class FusedInsight(BaseModel):
@@ -219,6 +273,9 @@ class FusedInsight(BaseModel):
     company_profile: CompanyProfile | None = None
     composite_score: float = 0.0
     sentiment: Sentiment = Sentiment.NEUTRAL
+    suggested_action: TradeSetup | None = None
+    pairs_trade: PairsTradeSetup | None = None
+    llm_structured: LLMStructuredThesis | None = None
     llm_analysis: str = ""
     summary: str = ""
     generated_at: datetime = Field(default_factory=datetime.utcnow)

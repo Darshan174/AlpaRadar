@@ -60,10 +60,42 @@ class SignalResponse(BaseModel):
     detail: str
     score: float
     data: dict[str, Any] = Field(default_factory=dict)
+    historical_win_rate: float | None = None
+    historical_avg_return: float | None = None
+    historical_sample_size: int | None = None
     detected_at: datetime
     source_url: str | None = None
     source_name: str | None = None
     source_timestamp: datetime | None = None
+
+
+class TradeSetupResponse(BaseModel):
+    action: str
+    time_horizon: str
+    conviction: str
+    rationale: str
+    risk_note: str = ""
+    historical_win_rate: float | None = None
+    historical_avg_return: float | None = None
+    historical_sample_size: int | None = None
+
+
+class PairsTradeResponse(BaseModel):
+    long_ticker: str
+    short_ticker: str
+    long_company: str = ""
+    short_company: str = ""
+    long_score: float = 0.0
+    short_score: float = 0.0
+    divergence_score: float = 0.0
+    rationale: str = ""
+    sector: str = ""
+
+
+class LLMStructuredResponse(BaseModel):
+    suggested_action: str = ""
+    time_horizon: str = ""
+    conviction: str = ""
 
 
 class InsightResponse(BaseModel):
@@ -73,6 +105,9 @@ class InsightResponse(BaseModel):
     sentiment: str
     signal_count: int
     signals: list[SignalResponse]
+    suggested_action: TradeSetupResponse | None = None
+    pairs_trade: PairsTradeResponse | None = None
+    llm_structured: LLMStructuredResponse | None = None
     llm_analysis: str
     summary: str
     generated_at: datetime

@@ -7,6 +7,7 @@ import { SentimentBadge } from "./sentiment-badge";
 export function SignalCard({ signal }: { signal: Signal }) {
   const typeColor = SIGNAL_COLORS[signal.type] || "text-(--color-text-secondary)";
   const highlights = extractDataHighlights(signal.data, 3);
+  const hasHistory = signal.historical_win_rate != null;
 
   return (
     <div className="surface-panel hover-lift rounded-[28px] p-5">
@@ -40,8 +41,20 @@ export function SignalCard({ signal }: { signal: Signal }) {
         <p className="mt-2 text-sm leading-7 text-(--color-text-secondary)">{signal.detail}</p>
       </div>
 
-      {highlights.length > 0 ? (
+      {(highlights.length > 0 || hasHistory) ? (
         <div className="mt-4 flex flex-wrap gap-2">
+          {hasHistory ? (
+            <span className="data-chip border-(--color-bullish)/30 bg-(--color-bullish)/8">
+              <span className="text-(--color-text-muted)">Historical edge</span>
+              <span className="text-(--color-bullish)">
+                {(signal.historical_win_rate! * 100).toFixed(0)}%
+                {signal.historical_avg_return != null ? ` / +${signal.historical_avg_return}%` : ""}
+              </span>
+              {signal.historical_sample_size != null ? (
+                <span className="text-(--color-text-muted)">n={signal.historical_sample_size}</span>
+              ) : null}
+            </span>
+          ) : null}
           {highlights.map((item) => (
             <span key={item.label} className="data-chip">
               <span className="text-(--color-text-muted)">{item.label}</span>

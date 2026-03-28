@@ -9,6 +9,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import uuid
 
+from src.core.models import CompanyProfile, FusedInsight, Sentiment, Signal, SignalStrength, SignalType
+from src.intelligence.scorer import (
+    SIGNAL_HISTORICAL_STATS,
+    attach_historical_signal_stats,
+    score_insight,
+    suggest_action,
+)
+
 now = datetime.now(timezone.utc)
 
 
@@ -444,12 +452,13 @@ def get_signals(
         results = [s for s in results if s["detected_at"] <= date_to]
 
     results = sorted(results, key=lambda s: s["detected_at"], reverse=True)
-    return results[:limit]
+    return [_decorate_signal(signal) for signal in results[:limit]]
 
 
 def get_signal_by_id(signal_id: str) -> dict | None:
     """Get a single signal by ID."""
-    return SIGNAL_BY_ID.get(signal_id)
+    signal = SIGNAL_BY_ID.get(signal_id)
+    return _decorate_signal(signal) if signal else None
 
 
 def get_brief_for_signal(signal_id: str) -> dict | None:
@@ -465,7 +474,7 @@ def get_company(ticker: str) -> dict | None:
 def get_feed(limit: int = 20, offset: int = 0) -> dict:
     """Get the signal feed with pagination."""
     sorted_signals = sorted(SIGNALS, key=lambda s: s["detected_at"], reverse=True)
-    page = sorted_signals[offset : offset + limit]
+    page = [_decorate_signal(signal) for signal in sorted_signals[offset : offset + limit]]
     return {
         "signals": page,
         "total": len(SIGNALS),
@@ -479,10 +488,103 @@ def get_company_signals(ticker: str) -> dict:
     company = get_company(ticker)
     signals = get_signals(ticker=ticker)
     briefs = [BRIEFS[s["id"]] for s in signals if s["id"] in BRIEFS]
+    trade_setup = get_trade_setup_for_ticker(ticker)
 
     return {
         "company": company,
         "signals": signals,
         "briefs": briefs,
         "signal_count": len(signals),
+        "suggested_action": trade_setup,
+    }
+
+
+# ── Trade Setups (pre-computed per ticker) ────────────────────────────────────
+
+
+def _compute_trade_setup(ticker: str) -> dict | None:
+    """Compute a trade setup using the shared scorer logic."""
+    signal_dicts = get_signals(ticker=ticker)
+    if not signal_dicts:
+        return None
+
+    signal_models = [_seed_signal_to_model(signal) for signal in signal_dicts]
+    attach_historical_signal_stats(signal_models)
+
+    company = get_company(ticker)
+    company_profile = None
+    if company:
+        company_profile = CompanyProfile(
+            name=company["name"],
+            ticker=company["ticker"],
+            sector=company["sector"],
+            industry=company["industry"],
+        )
+
+    insight = FusedInsight(
+        ticker=ticker.upper(),
+        company_name=company["name"] if company else ticker.upper(),
+        signals=signal_models,
+        company_profile=company_profile,
+        sentiment=_seed_sentiment(signal_models),
+    )
+    insight.composite_score = score_insight(insight)
+    insight.suggested_action = suggest_action(insight)
+    return _serialize_trade_setup(insight.suggested_action)
+
+
+def get_trade_setup_for_ticker(ticker: str) -> dict | None:
+    """Get or compute the trade setup for a ticker."""
+    return _compute_trade_setup(ticker.upper())
+
+
+def _decorate_signal(signal: dict) -> dict:
+    """Attach derived historical stats to a seed signal response."""
+    enriched = dict(signal)
+    stats = SIGNAL_HISTORICAL_STATS.get(enriched["type"])
+    enriched["historical_win_rate"] = stats["win_rate"] if stats else None
+    enriched["historical_avg_return"] = stats["avg_return_3m"] if stats else None
+    enriched["historical_sample_size"] = int(stats["sample_size"]) if stats else None
+    return enriched
+
+
+def _seed_signal_to_model(signal: dict) -> Signal:
+    """Convert a seed signal dict into the shared Signal model."""
+    return Signal(
+        id=signal["id"],
+        type=SignalType(signal["type"]),
+        strength=SignalStrength(signal["strength"]),
+        sentiment=Sentiment(signal["sentiment"]),
+        ticker=signal["ticker"],
+        company_name=signal["company_name"],
+        headline=signal["headline"],
+        detail=signal["detail"],
+        score=signal["score"],
+        data=signal["data"],
+        detected_at=datetime.fromisoformat(signal["detected_at"]),
+    )
+
+
+def _seed_sentiment(signals: list[Signal]) -> Sentiment:
+    bullish = sum(1 for signal in signals if signal.sentiment == Sentiment.BULLISH)
+    bearish = sum(1 for signal in signals if signal.sentiment == Sentiment.BEARISH)
+    if bullish > bearish:
+        return Sentiment.BULLISH
+    if bearish > bullish:
+        return Sentiment.BEARISH
+    return Sentiment.NEUTRAL
+
+
+def _serialize_trade_setup(setup) -> dict | None:
+    if setup is None:
+        return None
+    return {
+        "action": setup.action.value,
+        "time_horizon": setup.time_horizon.value,
+        "conviction": setup.conviction,
+        "rationale": setup.rationale,
+        "risk_note": setup.risk_note,
+        "historical_win_rate": setup.historical_win_rate,
+        "historical_avg_return": setup.historical_avg_return,
+        "historical_sample_size": setup.historical_sample_size,
     }

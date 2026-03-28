@@ -7,6 +7,10 @@ import { ScoreBadge } from "@/components/score-badge";
 import { SentimentBadge } from "@/components/sentiment-badge";
 import { analyzeTicker } from "@/lib/api";
 import { collectEvidence, getSentimentBalance, getSignalMix } from "@/lib/presentation";
+import {
+  ACTION_LABELS,
+  HORIZON_LABELS,
+} from "@/lib/types";
 import type { Insight, Sentiment } from "@/lib/types";
 
 export default function ComparePage() {
@@ -212,6 +216,9 @@ function ComparisonView({ a, b }: { a: Insight; b: Insight }) {
 }
 
 function CompanyHeader({ insight }: { insight: Insight }) {
+  const actionLabel = insight.suggested_action ? ACTION_LABELS[insight.suggested_action.action] || insight.suggested_action.action : null;
+  const horizonLabel = insight.suggested_action ? HORIZON_LABELS[insight.suggested_action.time_horizon] || insight.suggested_action.time_horizon : null;
+
   return (
     <section className="surface-panel rounded-[32px] p-6">
       <div className="flex items-start justify-between gap-4">
@@ -239,6 +246,31 @@ function CompanyHeader({ insight }: { insight: Insight }) {
           <div className="mt-2 text-sm leading-6 text-(--color-text-secondary)">{insight.summary}</div>
         </div>
       </div>
+
+      {insight.suggested_action ? (
+        <div className="mt-4 rounded-[22px] border border-(--color-border) bg-(--color-bg-hover)/28 p-4">
+          <div className="text-xs uppercase tracking-[0.18em] text-(--color-text-muted)">Suggested action</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-(--color-text-primary)">{actionLabel}</span>
+            {horizonLabel ? <span className="data-chip">{horizonLabel}</span> : null}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-(--color-text-secondary)">
+            {insight.suggested_action.rationale}
+          </p>
+        </div>
+      ) : null}
+
+      {insight.pairs_trade ? (
+        <div className="mt-4 rounded-[22px] border border-(--color-accent)/25 bg-(--color-accent)/8 p-4">
+          <div className="text-xs uppercase tracking-[0.18em] text-(--color-text-muted)">Pairs trade</div>
+          <div className="mt-2 font-semibold text-(--color-text-primary)">
+            Long {insight.pairs_trade.long_ticker} / Short {insight.pairs_trade.short_ticker}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-(--color-text-secondary)">
+            {insight.pairs_trade.rationale}
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }

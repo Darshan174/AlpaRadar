@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from src.api.schemas import SignalResponse
+from src.intelligence.scorer import get_signal_historical_stats
 from src.storage import supabase as db
 
 router = APIRouter(prefix="/v1/signals", tags=["signals"])
@@ -24,7 +25,7 @@ async def list_signals(
         min_score=min_score,
         limit=limit,
     )
-    return rows
+    return [_hydrate_signal_row(row) for row in rows]
 
 
 @router.get("/search")
@@ -35,3 +36,14 @@ async def search_signals(
     """Semantic search over signals using RAG."""
     results = await db.search_similar_signals(q, limit=limit)
     return {"query": q, "results": results}
+
+
+def _hydrate_signal_row(row: dict) -> dict:
+    enriched = dict(row)
+    stats = get_signal_historical_stats(enriched["type"])
+    if not stats:
+        return enriched
+    enriched["historical_win_rate"] = stats["win_rate"]
+    enriched["historical_avg_return"] = stats["avg_return_3m"]
+    enriched["historical_sample_size"] = int(stats["sample_size"])
+    return enriched

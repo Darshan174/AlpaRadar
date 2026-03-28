@@ -7,7 +7,6 @@ import { getDatasetOverview } from "@/lib/api";
 import { ThemeToggle } from "./theme-toggle";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Landing", icon: HomeIcon, description: "Platform overview" },
   { href: "/radar", label: "Radar", icon: RadarIcon, description: "Current signal feed" },
   { href: "/compare", label: "Compare", icon: CompareIcon, description: "Company versus company" },
   { href: "/chat", label: "Ask AI", icon: MessageIcon, description: "Natural-language research" },

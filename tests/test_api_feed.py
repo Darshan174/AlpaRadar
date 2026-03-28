@@ -17,6 +17,7 @@ def test_feed_returns_signals():
     assert "signals" in data
     assert "total" in data
     assert len(data["signals"]) > 0
+    assert "historical_win_rate" in data["signals"][0]
 
 
 def test_feed_filter_by_ticker():
@@ -64,6 +65,8 @@ def test_company_detail():
     data = resp.json()
     assert data["company"]["ticker"] == "NVDA"
     assert len(data["signals"]) >= 1
+    assert data["suggested_action"] is not None
+    assert data["signals"][0]["historical_win_rate"] is not None
 
 
 def test_company_detail_case_insensitive():

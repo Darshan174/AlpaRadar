@@ -20,7 +20,8 @@ import {
   getSignalMix,
   getTopSignals,
 } from "@/lib/presentation";
-import type { Brief, CompanyDetail, CompanyInfo, Signal } from "@/lib/types";
+import type { Brief, CompanyDetail, CompanyInfo, Signal, TradeSetup } from "@/lib/types";
+import { ACTION_LABELS, ACTION_COLORS, HORIZON_LABELS, CONVICTION_COLORS } from "@/lib/types";
 
 type Tab = "overview" | "executives" | "competitors" | "earnings";
 
@@ -81,7 +82,7 @@ export default function CompanyDNAPage() {
     );
   }
 
-  const { company, signals, briefs } = data;
+  const { company, signals, briefs, suggested_action } = data;
   const sentiment = getSentimentBalance(signals);
   const avgScore = getAverageScore(signals);
   const executives = extractExecutiveMentions(signals);
@@ -159,6 +160,7 @@ export default function CompanyDNAPage() {
             evidence={evidence}
             signalMix={signalMix}
             topSignals={topSignals}
+            suggestedAction={suggested_action || undefined}
           />
         ) : null}
 
@@ -185,6 +187,7 @@ function OverviewTab({
   evidence,
   signalMix,
   topSignals,
+  suggestedAction,
 }: {
   company: CompanyInfo;
   signals: Signal[];
@@ -192,10 +195,13 @@ function OverviewTab({
   evidence: ReturnType<typeof collectEvidence>;
   signalMix: ReturnType<typeof getSignalMix>;
   topSignals: Signal[];
+  suggestedAction?: TradeSetup;
 }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-6">
+        {suggestedAction ? <TradeSetupCard setup={suggestedAction} /> : null}
+
         <Panel title="Signal overview">
           <div className="grid gap-3 md:grid-cols-2">
             {topSignals.length ? (
@@ -206,6 +212,15 @@ function OverviewTab({
                   </div>
                   <div className="mt-2 text-sm font-semibold text-(--color-text-primary)">{signal.headline}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {signal.historical_win_rate != null ? (
+                      <span className="data-chip border-(--color-bullish)/30 bg-(--color-bullish)/8">
+                        <span className="text-(--color-text-muted)">Historical edge</span>
+                        <span className="text-(--color-bullish)">
+                          {(signal.historical_win_rate * 100).toFixed(0)}%
+                          {signal.historical_avg_return != null ? ` / +${signal.historical_avg_return}%` : ""}
+                        </span>
+                      </span>
+                    ) : null}
                     {extractDataHighlights(signal.data, 2).map((item) => (
                       <span key={`${signal.id}-${item.label}`} className="data-chip">
                         <span className="text-(--color-text-muted)">{item.label}</span>
@@ -506,6 +521,57 @@ function EarningsTab({
         </Panel>
       </div>
     </div>
+  );
+}
+
+function TradeSetupCard({ setup }: { setup: TradeSetup }) {
+  const actionLabel = ACTION_LABELS[setup.action] || setup.action;
+  const actionColor = ACTION_COLORS[setup.action] || "text-(--color-text-primary)";
+  const horizonLabel = HORIZON_LABELS[setup.time_horizon] || setup.time_horizon;
+  const convictionColor = CONVICTION_COLORS[setup.conviction] || "text-(--color-text-muted)";
+
+  const isBullish = ["accumulate"].includes(setup.action);
+  const isBearish = ["short_candidate", "reduce", "take_profit"].includes(setup.action);
+
+  const borderColor = isBullish
+    ? "border-(--color-bullish)/30"
+    : isBearish
+      ? "border-(--color-bearish)/30"
+      : "border-(--color-border)";
+
+  const bgTint = isBullish
+    ? "bg-(--color-bullish)/6"
+    : isBearish
+      ? "bg-(--color-bearish)/6"
+      : "";
+
+  return (
+    <section className={`surface-panel rounded-[30px] p-5 lg:p-6 ${borderColor} ${bgTint}`}>
+      <div className="min-w-0 flex-1">
+        <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+          Suggested Action
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className={`metric-value text-3xl ${actionColor}`}>{actionLabel}</span>
+          <span className={`data-chip ${convictionColor}`}>
+            {setup.conviction.toUpperCase()} conviction
+          </span>
+          <span className="data-chip">{horizonLabel}</span>
+        </div>
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-(--color-text-secondary)">
+          {setup.rationale}
+        </p>
+      </div>
+
+      {setup.risk_note ? (
+        <div className="mt-4 rounded-[18px] border border-(--color-border) bg-(--color-bg-secondary)/60 px-4 py-3">
+          <div className="flex items-start gap-2 text-sm text-(--color-text-secondary)">
+            <span className="mt-0.5 text-(--color-neutral)">⚠</span>
+            <span>{setup.risk_note}</span>
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

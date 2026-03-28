@@ -113,6 +113,8 @@ def test_get_company_signals():
     assert result["company"] is not None
     assert len(result["signals"]) >= 1
     assert result["signal_count"] == len(result["signals"])
+    assert result["suggested_action"] is not None
+    assert result["signals"][0]["historical_win_rate"] is not None
 
 
 def test_companies_have_required_fields():
