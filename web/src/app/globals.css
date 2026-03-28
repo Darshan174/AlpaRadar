@@ -126,6 +126,23 @@ textarea {
   backdrop-filter: blur(24px);
 }
 
+.surface-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 0;
+}
+
+html:not(.dark) .surface-panel::before {
+  opacity: 0.03;
+  mix-blend-mode: multiply;
+}
+
 .surface-panel::after {
   content: "";
   position: absolute;
@@ -133,6 +150,7 @@ textarea {
   border-radius: inherit;
   border: 1px solid rgba(255, 255, 255, 0.04);
   pointer-events: none;
+  z-index: 1;
 }
 
 html:not(.dark) .surface-panel::after {
@@ -158,6 +176,12 @@ html:not(.dark) .surface-panel::after {
 .hover-lift:hover {
   transform: translateY(-2px);
   border-color: var(--color-border-strong);
+  box-shadow: 0 12px 30px rgba(249, 115, 22, 0.08);
+}
+
+.hover-lift:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-soft);
 }
 
 .subtle-grid {
@@ -215,14 +239,21 @@ html:not(.dark) .status-pill {
 .data-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   border-radius: 999px;
   border: 1px solid var(--color-border);
   background: rgba(148, 163, 184, 0.08);
-  padding: 0.45rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+  min-height: 38px;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.data-chip:active {
+  transform: scale(0.96);
 }
 
 .metric-value {
@@ -302,6 +333,28 @@ html:not(.dark) .status-pill {
 .float-gentle {
   animation: float-gentle 6s ease-in-out infinite;
 }
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+.stagger-5 { animation-delay: 500ms; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

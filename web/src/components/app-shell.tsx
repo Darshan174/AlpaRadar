@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
 
         <div className="relative flex min-w-0 flex-1 flex-col">
-          <header className="border-b border-(--color-border) bg-(--color-bg-secondary)/80 px-4 py-3 backdrop-blur-2xl md:hidden">
+          <header className="sticky top-0 z-50 border-b border-(--color-border) bg-(--color-bg-secondary)/80 px-4 py-3 backdrop-blur-2xl md:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <Link href="/" className="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-(--color-text-muted)">

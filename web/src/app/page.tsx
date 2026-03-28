@@ -152,13 +152,13 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/chat"
-              className="rounded-full border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-(--color-border) px-4 py-2 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary) active:scale-95"
             >
               Ask AI
             </Link>
             <Link
               href="/radar"
-              className="rounded-full bg-linear-to-r from-orange-500 to-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.28)] transition hover:translate-y-[-1px]"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-linear-to-r from-orange-500 to-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(249,115,22,0.28)] transition hover:translate-y-[-1px] active:scale-95 active:translate-y-0"
             >
               Enter Radar
             </Link>
@@ -167,7 +167,7 @@ export default function LandingPage() {
       </header>
 
       <main className="mx-auto max-w-[1440px] px-6 pb-24 pt-8 sm:px-8 lg:px-10 lg:pt-12">
-        <section className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_460px] lg:items-center">
+        <section className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_460px] lg:items-center animate-fade-up">
           <div className="max-w-3xl">
             <div className="kicker">Current platform overview</div>
 
@@ -196,7 +196,7 @@ export default function LandingPage() {
               <button
                 type="submit"
                 disabled={!ticker.trim()}
-                className="rounded-[22px] bg-linear-to-r from-orange-500 to-amber-500 px-6 py-4 text-sm font-semibold text-white transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-[22px] bg-linear-to-r from-orange-500 to-amber-500 px-6 py-4 text-sm font-semibold text-white transition hover:translate-y-[-1px] active:scale-[0.98] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Open Company DNA
               </button>
@@ -286,7 +286,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4 animate-fade-up stagger-1">
           {[
             { label: "Tracked Companies", value: dataset.companies ?? "—", detail: "from `/v1/companies`" },
             { label: "Current Signals", value: dataset.signals ?? "—", detail: "from `/v1/feed`" },
@@ -303,7 +303,7 @@ export default function LandingPage() {
           ))}
         </section>
 
-        <section id="features" className="mt-20">
+        <section id="features" className="mt-20 animate-fade-up stagger-2">
           <div className="max-w-3xl">
             <div className="kicker">Platform Features</div>
             <h2 className="display-title mt-5 text-4xl text-(--color-text-primary) sm:text-5xl">
@@ -335,7 +335,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="workflow" className="mt-20 grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
+        <section id="workflow" className="mt-20 grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start animate-fade-up stagger-3">
           <div className="surface-panel rounded-[34px] p-6 lg:p-8">
             <div className="kicker">Standard Workflow</div>
             <h2 className="display-title mt-5 text-4xl text-(--color-text-primary)">Built to feel like a serious analyst workspace.</h2>
@@ -369,7 +369,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="workspace" className="mt-20 surface-panel rounded-[36px] p-6 lg:p-8">
+        <section id="workspace" className="mt-20 surface-panel rounded-[36px] p-6 lg:p-8 animate-fade-up stagger-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="kicker">Inside The Workspace</div>
@@ -377,7 +377,7 @@ export default function LandingPage() {
             </div>
             <Link
               href="/radar"
-              className="rounded-full border border-(--color-border) px-5 py-3 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary)"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-(--color-border) px-6 py-3 text-sm font-semibold text-(--color-text-secondary) transition hover:border-(--color-border-strong) hover:text-(--color-text-primary) active:scale-95"
             >
               Launch the app
             </Link>
