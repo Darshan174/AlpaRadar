@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from src.api.middleware import APIKeyMiddleware, RateLimitMiddleware, RequestLoggingMiddleware
-from src.api.routes import chat, intelligence, signals, watchlist
+from src.api.routes import chat, feed, intelligence, signals, watchlist
 from src.api.schemas import HealthResponse
 from src.config import settings
 from src.logging_config import get_logger, setup_logging
@@ -76,7 +76,6 @@ async def _run_watchlist_scan():
     from src.ingestion.crustdata.transforms import to_company_profile
     from src.ingestion.market.price import fetch_market_data, ticker_to_domain
     from src.intelligence.fusion import generate_insight
-    from src.intelligence.scorer import score_insight
     from src.storage import supabase as db
 
     try:
@@ -99,7 +98,6 @@ async def _run_watchlist_scan():
                         company.ticker = ticker
 
                     insight = await generate_insight(company=company, market=market)
-                    insight.composite_score = score_insight(insight)
 
                     for signal in insight.signals:
                         if signal.is_actionable:
@@ -138,6 +136,7 @@ def create_app() -> FastAPI:
     )
 
     # Routes
+    app.include_router(feed.router)
     app.include_router(signals.router)
     app.include_router(intelligence.router)
     app.include_router(chat.router)

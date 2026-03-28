@@ -1,0 +1,82 @@
+[
+  {
+    "title": "Senior Software Engineer - Machine Learning",
+    "company_name": "Apple",
+    "location": "Cupertino, CA",
+    "posted_date": "2025-03-10",
+    "description": "We are looking for a Senior Software Engineer to join our ML team...",
+    "snippet": "Senior ML engineer to work on next-gen AI features",
+    "job_url": "https://jobs.apple.com/en-us/details/123456",
+    "department": "engineering"
+  },
+  {
+    "title": "Staff Backend Engineer",
+    "company_name": "Apple",
+    "location": "Austin, TX",
+    "posted_date": "2025-03-12",
+    "description": "Backend engineer for cloud infrastructure team...",
+    "snippet": "Staff-level backend role for cloud infrastructure",
+    "job_url": "https://jobs.apple.com/en-us/details/123457",
+    "department": "engineering"
+  },
+  {
+    "title": "DevOps Engineer",
+    "company_name": "Apple",
+    "location": "Seattle, WA",
+    "posted_date": "2025-03-11",
+    "description": "DevOps engineer for CI/CD and deployment automation...",
+    "snippet": "DevOps role focused on deployment automation",
+    "job_url": "https://jobs.apple.com/en-us/details/123458",
+    "department": "engineering"
+  },
+  {
+    "title": "Senior Product Manager - Health",
+    "company_name": "Apple",
+    "location": "Cupertino, CA",
+    "posted_date": "2025-03-08",
+    "description": "Product management for Apple Health features...",
+    "snippet": "PM role for Apple Health platform",
+    "job_url": "https://jobs.apple.com/en-us/details/123459",
+    "department": "product"
+  },
+  {
+    "title": "Enterprise Account Executive",
+    "company_name": "Apple",
+    "location": "New York, NY",
+    "posted_date": "2025-03-09",
+    "description": "Enterprise sales for Apple Business products...",
+    "snippet": "Enterprise sales role for business products",
+    "job_url": "https://jobs.apple.com/en-us/details/123460",
+    "department": "sales"
+  },
+  {
+    "title": "Data Scientist - Privacy Engineering",
+    "company_name": "Apple",
+    "location": "Cupertino, CA",
+    "posted_date": "2025-03-13",
+    "description": "Data scientist focused on differential privacy...",
+    "snippet": "Data science role in privacy engineering team",
+    "job_url": "https://jobs.apple.com/en-us/details/123461",
+    "department": "engineering"
+  },
+  {
+    "title": "Director of Engineering - Siri",
+    "company_name": "Apple",
+    "location": "Cupertino, CA",
+    "posted_date": "2025-03-14",
+    "description": "Engineering leadership for Siri and voice AI...",
+    "snippet": "Director-level engineering leadership for Siri",
+    "job_url": "https://jobs.apple.com/en-us/details/123462",
+    "department": "engineering"
+  },
+  {
+    "title": "Marketing Manager - Services",
+    "company_name": "Apple",
+    "location": "Cupertino, CA",
+    "posted_date": "2025-03-07",
+    "description": "Marketing for Apple Services ecosystem...",
+    "snippet": "Marketing role for Apple Services",
+    "job_url": "https://jobs.apple.com/en-us/details/123463",
+    "department": "marketing"
+  }
+]

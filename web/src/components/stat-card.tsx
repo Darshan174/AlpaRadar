@@ -7,10 +7,18 @@ interface StatCardProps {
 
 export function StatCard({ label, value, sub, color }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-bg-card) p-4">
-      <div className="mb-1 text-xs text-(--color-text-muted)">{label}</div>
-      <div className={`text-2xl font-bold ${color || "text-(--color-text-primary)"}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-(--color-text-secondary)">{sub}</div>}
+    <div className="surface-panel hover-lift rounded-[26px] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-(--color-text-muted)">
+          {label}
+        </div>
+        {sub ? (
+          <span className="rounded-full border border-(--color-border) bg-(--color-bg-hover)/40 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-(--color-text-secondary)">
+            {sub}
+          </span>
+        ) : null}
+      </div>
+      <div className={`mt-4 metric-value text-3xl ${color || "text-(--color-text-primary)"}`}>{value}</div>
     </div>
   );
 }

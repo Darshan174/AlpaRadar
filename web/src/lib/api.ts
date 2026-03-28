@@ -14,7 +14,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ── Intelligence ──────────────────────────────────────────────────────────────
 
-import type { Insight, Signal, ChatResponse, SectorPulse, WatchlistItem } from "./types";
+import type {
+  Insight, Signal, ChatResponse, SectorPulse, WatchlistItem,
+  SignalDetail, Brief, CompanyDetail, CompanyInfo, FeedResponse,
+} from "./types";
 
 export async function analyzeTicker(
   ticker: string,
@@ -61,6 +64,61 @@ export async function searchSignals(
   limit = 10
 ): Promise<{ query: string; results: Signal[] }> {
   return request(`/v1/signals/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+}
+
+// ── Feed & Detail ────────────────────────────────────────────────────────────
+
+export async function getFeed(params?: {
+  ticker?: string;
+  type?: string;
+  min_score?: number;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<FeedResponse> {
+  const qs = new URLSearchParams();
+  if (params?.ticker) qs.set("ticker", params.ticker);
+  if (params?.type) qs.set("type", params.type);
+  if (params?.min_score) qs.set("min_score", String(params.min_score));
+  if (params?.date_from) qs.set("date_from", params.date_from);
+  if (params?.date_to) qs.set("date_to", params.date_to);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  return request<FeedResponse>(`/v1/feed?${qs}`);
+}
+
+export async function getSignalDetail(signalId: string): Promise<SignalDetail> {
+  return request<SignalDetail>(`/v1/signal/${signalId}`);
+}
+
+export async function generateBrief(
+  signalId: string,
+  promptVersion = "v1"
+): Promise<Brief> {
+  return request<Brief>(`/v1/signal/${signalId}/brief?prompt_version=${promptVersion}`, {
+    method: "POST",
+  });
+}
+
+export async function getCompanyDetail(ticker: string): Promise<CompanyDetail> {
+  return request<CompanyDetail>(`/v1/company/${ticker}`);
+}
+
+export async function listCompanies(): Promise<{ companies: CompanyInfo[]; total: number }> {
+  return request(`/v1/companies`);
+}
+
+export async function getDatasetOverview(): Promise<{ companies: number; signals: number }> {
+  const [companyResponse, feedResponse] = await Promise.all([
+    listCompanies(),
+    getFeed({ limit: 1 }),
+  ]);
+
+  return {
+    companies: companyResponse.total,
+    signals: feedResponse.total,
+  };
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────

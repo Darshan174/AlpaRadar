@@ -6,6 +6,7 @@ Uses Groq free tier (Llama 3.3 70B) via LiteLLM with fallback to Llama 3.1 8B.
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -15,6 +16,7 @@ from src.core.exceptions import LLMError
 from src.core.models import (
     EarningsIntel,
     FusedInsight,
+    LLMStructuredThesis,
     MarketData,
     RAGContext,
     Sentiment,
@@ -136,6 +138,24 @@ async def chat(
 
 
 # ── Formatting helpers ─────────────────────────────────────────────────────────
+
+
+def extract_structured_signal_analysis(text: str) -> LLMStructuredThesis | None:
+    """Parse the main structured sections from the markdown analysis."""
+
+    def _extract(label: str) -> str:
+        pattern = rf"^\*\*{re.escape(label)}\*\*:\s*(.+)$"
+        match = re.search(pattern, text, flags=re.MULTILINE)
+        return match.group(1).strip() if match else ""
+
+    thesis = LLMStructuredThesis(
+        suggested_action=_extract("Suggested Action"),
+        time_horizon=_extract("Time Horizon"),
+        conviction=_extract("Conviction"),
+    )
+    if not any([thesis.suggested_action, thesis.time_horizon, thesis.conviction]):
+        return None
+    return thesis
 
 
 def _format_signals(signals: list[Signal]) -> str:

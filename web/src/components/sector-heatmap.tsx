@@ -9,23 +9,16 @@ export interface SectorData {
   top_ticker?: string;
 }
 
-const MOCK_SECTORS: SectorData[] = [
-  { name: "AI / ML", growth_pct: 34, companies: 48, top_ticker: "NVDA" },
-  { name: "Cloud Infra", growth_pct: 22, companies: 35, top_ticker: "AMZN" },
-  { name: "Cybersecurity", growth_pct: 18, companies: 27, top_ticker: "CRWD" },
-  { name: "Fintech", growth_pct: 12, companies: 42, top_ticker: "SQ" },
-  { name: "SaaS", growth_pct: 8, companies: 63, top_ticker: "CRM" },
-  { name: "E-commerce", growth_pct: 3, companies: 31, top_ticker: "SHOP" },
-  { name: "Social Media", growth_pct: -2, companies: 18, top_ticker: "META" },
-  { name: "Streaming", growth_pct: -5, companies: 12, top_ticker: "NFLX" },
-  { name: "Crypto / Web3", growth_pct: -8, companies: 24, top_ticker: "COIN" },
-  { name: "Biotech", growth_pct: 15, companies: 56, top_ticker: "MRNA" },
-  { name: "EV / Clean", growth_pct: -4, companies: 22, top_ticker: "TSLA" },
-  { name: "Semiconductors", growth_pct: 28, companies: 19, top_ticker: "AMD" },
-];
-
 export function SectorHeatmap({ sectors }: { sectors?: SectorData[] }) {
-  const data = sectors || MOCK_SECTORS;
+  const data = sectors || [];
+
+  if (!data.length) {
+    return (
+      <div className="rounded-[24px] border border-dashed border-(--color-border) p-6 text-sm text-(--color-text-muted)">
+        No sector data is available.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -52,26 +45,27 @@ function SectorTile({ sector }: { sector: SectorData }) {
 
   return (
     <div
-      className="group cursor-pointer rounded-lg border p-3 transition-all hover:scale-[1.02]"
+      className="group relative overflow-hidden rounded-[24px] border p-4 transition-all hover:-translate-y-1"
       style={{ backgroundColor: bgColor, borderColor }}
     >
-      <div className="mb-1 text-xs font-semibold text-(--color-text-primary) truncate">
+      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/6 blur-2xl" />
+      <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-(--color-text-muted)">
         {sector.name}
       </div>
-      <div className={`text-lg font-bold ${textColor}`}>
+      <div className={`metric-value text-3xl ${textColor}`}>
         {sector.growth_pct > 0 ? "+" : ""}{sector.growth_pct}%
       </div>
-      <div className="flex items-center justify-between text-[10px] text-(--color-text-muted)">
-        <span>{sector.companies} cos</span>
-        {sector.top_ticker && (
+      <div className="mt-4 flex items-center justify-between text-[0.72rem] text-(--color-text-muted)">
+        <span>{sector.companies} companies</span>
+        {sector.top_ticker ? (
           <Link
             href={`/company/${sector.top_ticker}`}
             className="text-(--color-accent) hover:underline"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
-            {sector.top_ticker}
+            {sector.top_ticker} →
           </Link>
-        )}
+        ) : null}
       </div>
     </div>
   );

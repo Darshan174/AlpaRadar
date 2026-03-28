@@ -25,13 +25,22 @@ an actionable intelligence brief.
 3. Identify the most actionable insight
 4. Note any conflicting signals and how to interpret them
 5. Give a clear directional view: bullish, bearish, or neutral — with conviction level
+6. Classify the TIME HORIZON for this thesis
+7. Suggest a concrete TRADE ACTION
 
 ## Output Format
+Use the exact bolded section labels below. Keep `Suggested Action`, `Time Horizon`, and `Conviction`
+to single-line entries so the application can parse them reliably.
+
 **TLDR**: [One sentence summary]
 
 **Signal Synthesis**: [2-3 paragraphs connecting the dots]
 
 **Key Insight**: [The single most important takeaway]
+
+**Suggested Action**: [ACCUMULATE / HOLD / REDUCE / SHORT CANDIDATE / TAKE PROFIT] — [1-2 sentence rationale]
+
+**Time Horizon**: [SHORT-TERM CATALYST / MEDIUM-TERM SWING / LONG-TERM COMPOUNDER / VALUE TRAP] — [Why this timeframe applies]
 
 **Risk Factors**: [What could invalidate this thesis]
 
